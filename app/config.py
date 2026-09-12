@@ -9,9 +9,11 @@ UPLOAD_DIR = BASE_DIR / "data" / "uploads"
 SAMPLE_DIR = BASE_DIR / "sample_labels"
 REPORT_DIR = BASE_DIR / "data" / "reports"
 RULES_FILE = APP_DIR / "rules" / "legal_metrology_2011.json"
+DATABASE_PATH = BASE_DIR / "data" / "metrology_audit.db"
+DATABASE_URL = os.environ.get("DATABASE_URL", f"sqlite:///{DATABASE_PATH}")
 
 # Ensure runtime directories exist
-for path in [UPLOAD_DIR, SAMPLE_DIR, REPORT_DIR, STATIC_DIR]:
+for path in [UPLOAD_DIR, SAMPLE_DIR, REPORT_DIR, STATIC_DIR, DATABASE_PATH.parent]:
     path.mkdir(parents=True, exist_ok=True)
 
 # Default Calibration Constants

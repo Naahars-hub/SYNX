@@ -762,3 +762,115 @@ function captureWebcamPhoto() {
   }, 'image/jpeg', 0.92);
 }
 
+// ==========================================
+// 🗄️ Relational SQL Audit Ledger Logic
+// ==========================================
+let historySearchTimer = null;
+
+async function openHistoryModal() {
+  document.getElementById('historyModal').style.display = 'flex';
+  loadAuditHistory();
+  loadSqlAnalytics();
+}
+
+function closeHistoryModal() {
+  document.getElementById('historyModal').style.display = 'none';
+}
+
+function onHistorySearch() {
+  if (historySearchTimer) clearTimeout(historySearchTimer);
+  historySearchTimer = setTimeout(() => {
+    const q = document.getElementById('historySearchInput').value;
+    loadAuditHistory(q);
+  }, 250);
+}
+
+async function loadSqlAnalytics() {
+  const bar = document.getElementById('sqlAnalyticsBar');
+  try {
+    const res = await fetch('/api/analytics');
+    const data = await res.json();
+    bar.innerHTML = `
+      <span style="font-weight:600;color:var(--text-primary);">Total Recorded: <span style="font-family:var(--font-mono);color:var(--text-cyan);">${data.total_inspections}</span></span>
+      <span style="color:var(--border-strong);">|</span>
+      <span style="color:var(--text-secondary);">Compliance Rate: <b style="color:var(--text-green);font-family:var(--font-mono);">${data.compliance_rate_percent}%</b></span>
+      <span style="color:var(--border-strong);">|</span>
+      <span style="color:var(--text-muted);">Storage: <span style="font-family:var(--font-mono);color:var(--text-secondary);">SQLite / PostgreSQL Relational</span></span>
+    `;
+  } catch (err) {
+    bar.innerHTML = '<span style="color:var(--text-muted);">SQL Database Online</span>';
+  }
+}
+
+async function loadAuditHistory(searchQuery = '') {
+  const tbody = document.getElementById('historyTableBody');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:1rem;"><span class="spinner"></span> Querying SQL tables...</td></tr>';
+
+  try {
+    let url = '/api/history?limit=50';
+    if (searchQuery && searchQuery.trim()) {
+      url += `&search=${encodeURIComponent(searchQuery.trim())}`;
+    }
+    const res = await fetch(url);
+    const records = await res.json();
+
+    if (!records || records.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:1.5rem;">No historical inspection records found in SQL database. Run an audit to log entries!</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = '';
+    records.forEach(item => {
+      const dt = item.created_at ? item.created_at.replace('T', ' ').substring(0, 19) : '--';
+      const commodity = item.commodity_name || '<i style="color:var(--text-muted);">Unidentified</i>';
+      const mfg = item.manufacturer || '<i style="color:var(--text-muted);">Unspecified</i>';
+      const score = item.overall_score ? `${item.overall_score.toFixed(0)}%` : '--%';
+
+      let badgeClass = 'badge-INFO';
+      if (item.verdict === 'COMPLIANT') badgeClass = 'badge-PASS';
+      else if (item.verdict === 'NON_COMPLIANT') badgeClass = 'badge-FAIL';
+      else if (item.verdict === 'CONDITIONAL') badgeClass = 'badge-WARNING';
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-secondary);">${dt}</td>
+        <td><b>${escapeHtml(commodity)}</b></td>
+        <td style="font-size:0.75rem;">${escapeHtml(mfg)}</td>
+        <td style="font-family:var(--font-mono);font-weight:600;">${score}</td>
+        <td><span class="status-badge ${badgeClass}">${item.verdict}</span></td>
+        <td style="white-space:nowrap;">
+          <button class="btn btn-secondary" style="padding:2px 8px;font-size:0.7rem;height:24px;" onclick="loadHistoricalAudit('${item.audit_id}')">
+            🔍 Inspect
+          </button>
+          <a href="/api/reports/${item.audit_id}" target="_blank" class="btn btn-primary" style="padding:2px 8px;font-size:0.7rem;height:24px;text-decoration:none;margin-left:4px;">
+            📄 PDF
+          </a>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-red);padding:1rem;">Failed to load SQL records: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+async function loadHistoricalAudit(auditId) {
+  try {
+    const res = await fetch(`/api/history/${auditId}`);
+    if (!res.ok) throw new Error('Audit not found');
+    const data = await res.json();
+
+    if (data.audit_detail) {
+      currentAudit = data.audit_detail;
+      closeHistoryModal();
+      displayAuditResults(currentAudit);
+      document.getElementById('canvasStats').textContent = `Historical SQL Record: ${auditId.substring(0, 8)}`;
+    } else {
+      alert('Detailed JSON payload not available for this record.');
+    }
+  } catch (err) {
+    alert('Failed to load historical audit: ' + err.message);
+  }
+}
+
+

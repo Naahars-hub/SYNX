@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
 from app.config import (
-    BASE_DIR, UPLOAD_DIR, SAMPLE_DIR, REPORT_DIR, STATIC_DIR, RULES_FILE, get_local_ip
+    BASE_DIR, UPLOAD_DIR, SAMPLE_DIR, REPORT_DIR, STATIC_DIR, RULES_FILE, DATABASE_PATH, get_local_ip
 )
 from app.extractor.entities import (
     CalibrationData, AuditResult
@@ -23,6 +23,14 @@ from app.rules.engine import RulesEngine
 from app.rules.pdp_calculator import compute_pdp_and_font_requirements
 from app.reporting.pdf_generator import PDFReportGenerator
 from app.dataset.synthetic_generator import SyntheticLabelGenerator
+from app.db import (
+    init_db,
+    save_audit_record,
+    get_audit_by_id,
+    list_recent_audits,
+    get_manufacturer_offence_count,
+    get_system_analytics
+)
 
 app = FastAPI(
     title="Legal Metrology Compliance Checker - SYNX",
@@ -41,7 +49,7 @@ entity_parser = EntityParser()
 rules_engine = RulesEngine()
 pdf_generator = PDFReportGenerator()
 
-# Cache of recent audits in-memory
+# Cache of recent audits in-memory (backed permanently by SQLite database)
 audit_cache = {}
 
 def compute_file_sha256(filepath: Path) -> str:
@@ -53,6 +61,10 @@ def compute_file_sha256(filepath: Path) -> str:
 
 @app.on_event("startup")
 async def startup_event():
+    # Initialize Relational SQL Database
+    init_db()
+    print(f"[Startup] Relational SQL Database initialized at {DATABASE_PATH}")
+
     # Verify or generate synthetic samples if not present
     if not list(SAMPLE_DIR.glob("*.png")):
         gen = SyntheticLabelGenerator(SAMPLE_DIR)
@@ -382,9 +394,13 @@ async def audit_image(
     )
 
     # 4. Generate PDF Report
+    pdf_filename = f"Audit_Report_{audit_id}.pdf"
     pdf_generator.generate_report(audit_res, prim_path)
 
-    # Cache result
+    # 5. Persist permanently in SQL Database (SQLite / PostgreSQL)
+    save_audit_record(audit_res, image_sha256=img_hash, pdf_filename=pdf_filename)
+
+    # Fast in-memory cache
     audit_cache[audit_id] = audit_res
 
     return audit_res
@@ -394,9 +410,41 @@ async def download_report(audit_id: str):
     """Downloads the official generated PDF compliance report."""
     report_file = REPORT_DIR / f"Audit_Report_{audit_id}.pdf"
     if not report_file.exists():
+        # Check if audit is in SQL database and regenerate report if missing
+        db_audit = get_audit_by_id(audit_id)
+        if db_audit and db_audit.get("audit_detail"):
+            try:
+                from app.extractor.entities import AuditResult
+                reconstructed = AuditResult.from_dict(db_audit["audit_detail"])
+                img_path = Path(reconstructed.image_url.lstrip("/"))
+                if not img_path.exists():
+                    img_path = BASE_DIR / reconstructed.image_url.lstrip("/")
+                pdf_generator.generate_report(reconstructed, img_path)
+            except Exception as e:
+                print(f"Could not regenerate PDF for {audit_id}: {e}")
+
+    if not report_file.exists():
         raise HTTPException(status_code=404, detail="Audit report PDF not found.")
     return FileResponse(
         str(report_file),
         media_type="application/pdf",
         filename=f"Legal_Metrology_Audit_{audit_id}.pdf"
     )
+
+@app.get("/api/history")
+async def get_history(limit: int = 50, search: Optional[str] = None):
+    """Fetches historical audit records from the SQL database."""
+    return list_recent_audits(limit=limit, search=search)
+
+@app.get("/api/history/{audit_id}")
+async def get_history_detail(audit_id: str):
+    """Fetches full details of a specific historical audit from the SQL database."""
+    record = get_audit_by_id(audit_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Audit record not found in database.")
+    return record
+
+@app.get("/api/analytics")
+async def get_analytics():
+    """Returns statutory compliance analytics aggregated from the SQL database."""
+    return get_system_analytics()
