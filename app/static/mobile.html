@@ -5,35 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SYNX - Mobile Field Scanner | SIH 2026</title>
   <style>
-    :root {
-      --bg-app: #f8fafc;
-      --bg-card: #ffffff;
-      --bg-subtle: #f1f5f9;
-      --bg-hover: #e2e8f0;
-      --border-color: #e2e8f0;
-      --border-strong: #cbd5e1;
-      --text-primary: #0f172a;
-      --text-secondary: #475569;
-      --text-muted: #64748b;
-      --accent-primary: #1d4ed8;
-      --accent-primary-hover: #1e40af;
-      --accent-green: #059669;
+    :root, [data-theme="dark"] {
+      --bg-app: #08090a;
+      --bg-card: #121316;
+      --bg-subtle: #18191c;
+      --bg-hover: #1e1f23;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.16);
+      --text-primary: #f7f8f8;
+      --text-secondary: #d0d6e0;
+      --text-muted: #8a8f98;
+      --accent-primary: #5e6ad2;
+      --accent-primary-hover: #7170ff;
+      --accent-green: #27a644;
       --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
     }
 
-    [data-theme="dark"] {
-      --bg-app: #0a0d14;
-      --bg-card: #141a26;
-      --bg-subtle: #0d121c;
-      --bg-hover: #1c2436;
-      --border-color: rgba(255, 255, 255, 0.10);
-      --border-strong: rgba(255, 255, 255, 0.18);
-      --text-primary: #f8fafc;
-      --text-secondary: #94a3b8;
-      --text-muted: #64748b;
-      --accent-primary: #2563eb;
-      --accent-primary-hover: #1d4ed8;
-      --accent-green: #059669;
+    [data-theme="light"] {
+      --bg-app: #f7f8f9;
+      --bg-card: #ffffff;
+      --bg-subtle: #f3f4f6;
+      --bg-hover: #e5e7eb;
+      --border-color: #e5e7eb;
+      --border-strong: #d1d5db;
+      --text-primary: #090a0c;
+      --text-secondary: #4b5563;
+      --text-muted: #6b7280;
+      --accent-primary: #5e6ad2;
+      --accent-primary-hover: #4e5ac0;
+      --accent-green: #16a34a;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -227,36 +227,48 @@
     <!-- Gallery of captured angles -->
     <div class="gallery-container" id="galleryBox">
       <div style="grid-column: span 3; color: var(--text-muted); font-size: 0.78rem; display: flex; align-items: center; justify-content: center; height: 110px; border: 1.5px dashed var(--border-strong); border-radius: 6px;" id="emptyPlaceholder">
-        No captures yet. Capture the front PDP panel first.
+        No captures yet. Capture the first angle.
       </div>
     </div>
 
-    <!-- Hidden native camera input -->
+    <!-- Hidden inputs for camera capture and gallery upload -->
     <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;" onchange="onPhotoSelected(event)">
+    <input type="file" id="galleryInput" accept="image/*" style="display: none;" onchange="onPhotoSelected(event)">
 
-    <button class="btn btn-camera" id="btnSnap" onclick="document.getElementById('cameraInput').click()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
-        <circle cx="12" cy="13" r="3"/>
-      </svg>
-      Capture Product Angle / Side
-    </button>
+    <div style="display: flex; gap: 0.5rem; width: 100%; margin-bottom: 0.6rem;">
+      <button class="btn btn-camera" id="btnSnap" style="flex: 1; padding: 0.75rem 0.4rem; font-size: 0.82rem;" onclick="document.getElementById('cameraInput').click()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+          <circle cx="12" cy="13" r="3"/>
+        </svg>
+        <span>Camera</span>
+      </button>
+
+      <button class="btn" id="btnGallery" style="flex: 1; padding: 0.75rem 0.4rem; font-size: 0.82rem; background: var(--bg-subtle); color: var(--text-primary); border: 1px solid var(--border-strong);" onclick="document.getElementById('galleryInput').click()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+          <circle cx="9" cy="9" r="2"/>
+          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+        </svg>
+        <span>Upload Photo</span>
+      </button>
+    </div>
 
     <button class="btn btn-submit" id="btnSubmitAll" style="display: none;" onclick="submitAllAngles()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M22 2 11 13"/>
         <path d="m22 2-7 20-4-9-9-4 20-7z"/>
       </svg>
-      Transmit All (<span id="submitCount">0</span>) Sides to Workstation
+      Transmit All (<span id="submitCount">0</span>) Angles to Workstation
     </button>
 
     <div class="status-msg" id="statusMsg"></div>
 
     <div class="tips">
-      <b>Inspection Capture Sequence:</b><br>
-      • <b>Photo 1:</b> Principal Display Panel (Brand, Commodity, Net Quantity)<br>
-      • <b>Photo 2:</b> Information Panel (Manufacturer, Customer Care, Address)<br>
-      • <b>Photo 3:</b> Stamp Zone (MRP, Batch Number, Date of Packaging)<br>
+      <b>Multi-Angle Capture Sequence:</b><br>
+      • <b>Angle 1:</b> First side or panel of package<br>
+      • <b>Angle 2:</b> Second side or panel<br>
+      • <b>Angle 3+:</b> Additional angles and panels (up to 6)<br>
       All captures will be unified into one comprehensive compliance ledger.
     </div>
   </div>
@@ -279,11 +291,33 @@
       document.getElementById('sessionInfo').textContent = 'Warning: No active session ID found.';
     }
 
+    const MAX_UPLOAD_FILES = 6;
+    const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
     async function onPhotoSelected(event) {
       const files = event.target.files;
       if (!files || files.length === 0) return;
 
+      if (!sessionId) {
+        alert('Error: No active session ID found. Please re-scan the QR code from the workstation.');
+        event.target.value = '';
+        return;
+      }
+
+      if (uploadedImages.length >= MAX_UPLOAD_FILES) {
+        alert(`Session Limit Reached:\nYou have already captured the maximum allowed ${MAX_UPLOAD_FILES} angles.\nTap 'Transmit All' to run the compliance audit.`);
+        event.target.value = '';
+        return;
+      }
+
       const file = files[0];
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        alert(`Photo Too Large:\nPhoto is ${sizeMB} MB. Maximum allowed size is 10 MB per capture.`);
+        event.target.value = '';
+        return;
+      }
+
       const statusMsg = document.getElementById('statusMsg');
       statusMsg.innerHTML = '<span class="spinner"></span> Transmitting angle to session...';
       statusMsg.style.color = '#fbbf24';
@@ -297,13 +331,16 @@
           body: formData
         });
 
-        if (!res.ok) throw new Error('Upload failed');
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || `Upload failed (Status ${res.status})`);
+        }
         const data = await res.json();
 
         uploadedImages = data.images || [];
         renderGallery();
 
-        statusMsg.innerHTML = `Side #${uploadedImages.length} saved! Capture another angle or transmit to workstation.`;
+        statusMsg.innerHTML = `Angle #${uploadedImages.length} saved! Capture another angle or transmit to workstation.`;
         statusMsg.style.color = '#34d399';
 
         document.getElementById('btnSubmitAll').style.display = 'flex';
@@ -312,7 +349,7 @@
             <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
             <circle cx="12" cy="13" r="3"/>
           </svg>
-          Capture Another Angle (Side #${uploadedImages.length + 1})
+          <span>Camera (Side #${uploadedImages.length + 1})</span>
         `;
       } catch (err) {
         statusMsg.textContent = `Upload failed: ${err.message}`;
@@ -338,17 +375,66 @@
       }
 
       box.innerHTML = '';
-      const labels = ['Front (PDP)', 'Back Panel', 'Stamp / Flap', 'Side Panel', 'Top Panel'];
 
       uploadedImages.forEach((img, idx) => {
         const card = document.createElement('div');
         card.className = 'thumb-card';
         card.innerHTML = `
+          <button type="button" class="btn-del" title="Remove this angle" onclick="deleteMobileAngle(${idx}, event)">&times;</button>
           <img src="${img.image_url}" alt="Angle ${idx+1}">
-          <div class="thumb-tag">#${idx+1}: ${labels[idx] || `Angle ${idx+1}`}</div>
+          <div class="thumb-tag">Angle ${idx+1}</div>
         `;
         box.appendChild(card);
       });
+    }
+
+    async function deleteMobileAngle(idx, event) {
+      if (event) event.stopPropagation();
+      if (idx < 0 || idx >= uploadedImages.length) return;
+      const target = uploadedImages[idx];
+
+      const statusMsg = document.getElementById('statusMsg');
+      statusMsg.innerHTML = '<span class="spinner"></span> Removing angle...';
+      statusMsg.style.color = '#fbbf24';
+
+      try {
+        const res = await fetch(`/api/mobile/delete/${sessionId}/${encodeURIComponent(target.filename)}`, {
+          method: 'POST'
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || 'Failed to remove angle');
+        }
+
+        uploadedImages.splice(idx, 1);
+        renderGallery();
+
+        if (uploadedImages.length === 0) {
+          document.getElementById('btnSubmitAll').style.display = 'none';
+          statusMsg.innerHTML = 'Angle removed. Ready to capture.';
+          statusMsg.style.color = 'var(--text-muted)';
+          document.getElementById('btnSnap').innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+              <circle cx="12" cy="13" r="3"/>
+            </svg>
+            <span>Camera</span>
+          `;
+        } else {
+          statusMsg.innerHTML = `Angle removed. ${uploadedImages.length} angle(s) in session.`;
+          statusMsg.style.color = '#34d399';
+          document.getElementById('btnSnap').innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+              <circle cx="12" cy="13" r="3"/>
+            </svg>
+            <span>Camera (Side #${uploadedImages.length + 1})</span>
+          `;
+        }
+      } catch (err) {
+        statusMsg.textContent = `Error removing angle: ${err.message}`;
+        statusMsg.style.color = '#f87171';
+      }
     }
 
     async function submitAllAngles() {
@@ -363,9 +449,12 @@
 
       try {
         const res = await fetch(`/api/mobile/submit/${sessionId}`, { method: 'POST' });
-        if (!res.ok) throw new Error('Submission failed');
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || `Submission failed (Status ${res.status})`);
+        }
 
-        statusMsg.innerHTML = `<b>All ${uploadedImages.length} captures transmitted!</b><br>Check workstation display for unified audit results.`;
+        statusMsg.innerHTML = `<b>✓ All ${uploadedImages.length} capture(s) transmitted!</b><br>Workstation is now running unified Legal Metrology audit.`;
         statusMsg.style.color = '#34d399';
         btnSubmit.style.display = 'none';
         document.getElementById('btnSnap').innerHTML = `

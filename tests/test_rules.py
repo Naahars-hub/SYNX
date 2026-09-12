@@ -100,5 +100,106 @@ class TestLegalMetrologyRules(unittest.TestCase):
         self.assertEqual(font_eval.status, "FAIL")
         self.assertIn("below the minimum required", font_eval.message)
 
+    def test_rule_26_small_package_exemption(self):
+        """Packages <= 10g or <= 10ml should be exempt from mfg date and USP under Rule 26(a)."""
+        pdp = PDPCalculation(
+            package_type="rectangular",
+            dimensions_mm={"width": 30, "height": 40, "depth": 10},
+            pdp_area_sqcm=12.0,
+            calculation_formula="W x H",
+            required_min_font_height_mm=1.0
+        )
+        extracted = {
+            "net_quantity": ExtractedField(
+                field_type="net_quantity",
+                label="Net Quantity",
+                raw_text="Net Wt: 5 g",
+                parsed_value=5.0,
+                unit="g",
+                font_height_mm=0.8
+            ),
+            "mrp": ExtractedField(
+                field_type="mrp",
+                label="MRP",
+                raw_text="MRP Rs. 5 (incl. of all taxes)",
+                parsed_value={"amount": 5.0, "inclusive_of_all_taxes": True}
+            )
+        }
+        evals, score, verdict, summary = self.engine.evaluate(extracted, pdp, [])
+        date_eval = next((e for e in evals if e.field_target == "mfg_date"), None)
+        self.assertIsNotNone(date_eval)
+        self.assertEqual(date_eval.status, "PASS")
+        self.assertIn("Exempt under Rule 26(a)", date_eval.message)
+        self.assertIn("Rule 26(a) Small Package Exemption (≤ 10g/ml)", summary.get("exemptions", []))
+
+    def test_rule_3_bulk_package_tag(self):
+        """Packages > 25 kg/L should be tagged with Rule 3 bulk package exemption."""
+        pdp = PDPCalculation(
+            package_type="rectangular",
+            dimensions_mm={"width": 400, "height": 600, "depth": 200},
+            pdp_area_sqcm=2400.0,
+            calculation_formula="W x H",
+            required_min_font_height_mm=4.0
+        )
+        extracted = {
+            "net_quantity": ExtractedField(
+                field_type="net_quantity",
+                label="Net Quantity",
+                raw_text="Net Weight: 50 kg",
+                parsed_value=50.0,
+                unit="kg"
+            )
+        }
+        evals, score, verdict, summary = self.engine.evaluate(extracted, pdp, [])
+        bulk_eval = next((e for e in evals if e.rule_id == "RULE_3_BULK_EXEMPTION"), None)
+        self.assertIsNotNone(bulk_eval)
+        self.assertEqual(bulk_eval.status, "INFO")
+        self.assertIn("Rule 3", bulk_eval.message)
+
+    def test_dual_mrp_conflict_violation(self):
+        """Conflicting MRP declarations across package angles must trigger CRITICAL failure."""
+        from app.extractor.entities import ImageAngleResult
+        pdp = PDPCalculation(
+            package_type="rectangular",
+            dimensions_mm={"width": 100, "height": 100, "depth": 20},
+            pdp_area_sqcm=100.0,
+            calculation_formula="W x H",
+            required_min_font_height_mm=1.5
+        )
+        ang1 = ImageAngleResult(
+            angle_id=1, label="Angle 1", filename="a1.png", image_url="", image_width=500, image_height=500,
+            extracted_fields={"mrp": ExtractedField(field_type="mrp", label="MRP", raw_text="MRP Rs. 100", parsed_value={"amount": 100.0, "inclusive_of_all_taxes": True})}
+        )
+        ang2 = ImageAngleResult(
+            angle_id=2, label="Angle 2", filename="a2.png", image_url="", image_width=500, image_height=500,
+            extracted_fields={"mrp": ExtractedField(field_type="mrp", label="MRP", raw_text="MRP Rs. 120", parsed_value={"amount": 120.0, "inclusive_of_all_taxes": True})}
+        )
+        evals, score, verdict, summary = self.engine.evaluate({}, pdp, [], angles=[ang1, ang2])
+        dual_mrp_eval = next((e for e in evals if e.rule_id == "RULE_6_1_E_DUAL_MRP"), None)
+        self.assertIsNotNone(dual_mrp_eval)
+        self.assertEqual(dual_mrp_eval.status, "FAIL")
+        self.assertEqual(dual_mrp_eval.severity, "CRITICAL")
+        self.assertIn("Dual MRP violation", dual_mrp_eval.message)
+
+    def test_low_optical_clarity_warning(self):
+        """OCR blocks with average confidence below 50% must emit an optical clarity warning."""
+        from app.extractor.entities import OCRTextBlock, BoundingBox
+        pdp = PDPCalculation(
+            package_type="rectangular",
+            dimensions_mm={"width": 100, "height": 100, "depth": 20},
+            pdp_area_sqcm=100.0,
+            calculation_formula="W x H",
+            required_min_font_height_mm=1.5
+        )
+        low_conf_blocks = [
+            OCRTextBlock(text="fuzzy text", confidence=0.32, bbox=BoundingBox(x=10, y=10, width=50, height=20), height_px=20),
+            OCRTextBlock(text="blurry text", confidence=0.40, bbox=BoundingBox(x=10, y=40, width=50, height=20), height_px=20)
+        ]
+        evals, score, verdict, summary = self.engine.evaluate({}, pdp, low_conf_blocks)
+        clarity_eval = next((e for e in evals if e.rule_id == "OPTICAL_CLARITY_WARNING"), None)
+        self.assertIsNotNone(clarity_eval)
+        self.assertEqual(clarity_eval.status, "WARNING")
+        self.assertIn("Low optical clarity", clarity_eval.message)
+
 if __name__ == "__main__":
     unittest.main()

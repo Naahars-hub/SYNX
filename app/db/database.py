@@ -5,9 +5,11 @@ and tracks repeat-offender histories under Section 36(1) of the Legal Metrology 
 """
 
 import json
+import uuid
+import secrets
 import sqlite3
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 
 from app.config import DATABASE_PATH
@@ -46,9 +48,19 @@ def init_db():
                 image_sha256 TEXT,
                 image_url TEXT,
                 pdf_filename TEXT,
-                raw_audit_json TEXT
+                raw_audit_json TEXT,
+                inspector_name TEXT DEFAULT '',
+                inspector_email TEXT DEFAULT ''
             );
         """)
+
+        # Schema migrations for existing inspections table
+        cursor.execute("PRAGMA table_info(inspections);")
+        columns = [col["name"] for col in cursor.fetchall()]
+        if "inspector_name" not in columns:
+            cursor.execute("ALTER TABLE inspections ADD COLUMN inspector_name TEXT DEFAULT '';")
+        if "inspector_email" not in columns:
+            cursor.execute("ALTER TABLE inspections ADD COLUMN inspector_email TEXT DEFAULT '';")
 
         # 2. Relational Child Table: Rule Evaluations & Violations
         cursor.execute("""
@@ -68,17 +80,203 @@ def init_db():
             );
         """)
 
-        # 3. Fast Lookup Indexes
+        # 3. User Authentication Tables (Google Auth & Sessions)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                google_id TEXT UNIQUE,
+                email TEXT UNIQUE NOT NULL,
+                name TEXT NOT NULL,
+                picture TEXT,
+                role TEXT DEFAULT 'Legal Metrology Inspector',
+                department TEXT DEFAULT 'Legal Metrology Enforcement Division',
+                created_at TEXT NOT NULL,
+                last_login TEXT NOT NULL
+            );
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS sessions (
+                session_token TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                created_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+        """)
+
+        # 4. Fast Lookup Indexes
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_inspections_created_at ON inspections(created_at DESC);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_inspections_manufacturer ON inspections(manufacturer);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_inspections_verdict ON inspections(verdict);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_inspections_inspector ON inspections(inspector_email);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_evaluations_audit_id ON audit_evaluations(audit_id);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_evaluations_clause ON audit_evaluations(clause);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(session_token);")
 
         conn.commit()
 
 
-def save_audit_record(audit: AuditResult, image_sha256: str = "", pdf_filename: str = "") -> Dict[str, Any]:
+def is_inspector_role(role: str) -> bool:
+    """Checks if a user's statutory role grants Inspector privileges."""
+    if not role:
+        return False
+    r = role.strip().lower()
+    return any(kw in r for kw in ("inspector", "chief", "senior", "director", "admin"))
+
+
+def get_or_create_google_user(
+    google_id: str,
+    email: str,
+    name: str,
+    picture: str = "",
+    role: Optional[str] = None,
+    department: str = "Legal Metrology Enforcement Division"
+) -> Dict[str, Any]:
+    """
+    Retrieves existing user by google_id or email, or creates a new user.
+    Updates last_login timestamp and picture/name if changed, preserving existing role.
+    If creating a new user: assigns Inspector if first user in DB, otherwise defaults to 'Field Officer'.
+    """
+    now_iso = datetime.now().isoformat()
+    clean_email = email.lower().strip()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE google_id = ? OR email = ?;", (google_id, clean_email))
+        row = cursor.fetchone()
+        if row:
+            user_id = row["id"]
+            if role:
+                cursor.execute("""
+                    UPDATE users
+                    SET name = ?, picture = COALESCE(NULLIF(?, ''), picture), last_login = ?,
+                        google_id = COALESCE(google_id, ?), role = ?
+                    WHERE id = ?;
+                """, (name, picture, now_iso, google_id, role, user_id))
+            else:
+                cursor.execute("""
+                    UPDATE users
+                    SET name = ?, picture = COALESCE(NULLIF(?, ''), picture), last_login = ?,
+                        google_id = COALESCE(google_id, ?)
+                    WHERE id = ?;
+                """, (name, picture, now_iso, google_id, user_id))
+            conn.commit()
+            cursor.execute("SELECT * FROM users WHERE id = ?;", (user_id,))
+            return dict(cursor.fetchone())
+        else:
+            # First user becomes Senior Inspector, otherwise use provided role or default to Field Officer
+            cursor.execute("SELECT COUNT(*) FROM users;")
+            user_count = cursor.fetchone()[0]
+            if user_count == 0:
+                assigned_role = "Senior Legal Metrology Officer"
+            elif role:
+                assigned_role = role
+            else:
+                assigned_role = "Field Officer"
+
+            cursor.execute("""
+                INSERT INTO users (google_id, email, name, picture, role, department, created_at, last_login)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+            """, (google_id, clean_email, name, picture, assigned_role, department, now_iso, now_iso))
+            conn.commit()
+            user_id = cursor.lastrowid
+            cursor.execute("SELECT * FROM users WHERE id = ?;", (user_id,))
+            return dict(cursor.fetchone())
+
+
+def list_all_users() -> List[Dict[str, Any]]:
+    """Returns all registered users with their roles and activity timestamps."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, google_id, email, name, picture, role, department, created_at, last_login
+            FROM users
+            ORDER BY id ASC;
+        """)
+        return [dict(r) for r in cursor.fetchall()]
+
+
+def update_user_role(user_id: int, new_role: str) -> Optional[Dict[str, Any]]:
+    """Updates the statutory role of a user."""
+    clean_role = new_role.strip()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET role = ? WHERE id = ?;", (clean_role, user_id))
+        conn.commit()
+        cursor.execute("""
+            SELECT id, google_id, email, name, picture, role, department, created_at, last_login
+            FROM users
+            WHERE id = ?;
+        """, (user_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+
+def create_user_session(user_id: int, duration_days: int = 30) -> str:
+    """Generates a CSPRNG cryptographically secure session token and persists it in SQLite."""
+    token = secrets.token_urlsafe(32)
+    now = datetime.now()
+    expires = now + timedelta(days=duration_days)
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO sessions (session_token, user_id, created_at, expires_at)
+            VALUES (?, ?, ?, ?);
+        """, (token, user_id, now.isoformat(), expires.isoformat()))
+        conn.commit()
+    return token
+
+
+def get_user_from_session(token: str) -> Optional[Dict[str, Any]]:
+    """Validates session token and returns associated user dict if unexpired."""
+    if not token:
+        return None
+    now_iso = datetime.now().isoformat()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT u.*, s.expires_at
+            FROM sessions s
+            JOIN users u ON s.user_id = u.id
+            WHERE s.session_token = ? AND s.expires_at > ?;
+        """, (token, now_iso))
+        row = cursor.fetchone()
+        if not row:
+            return None
+        data = dict(row)
+        data.pop("expires_at", None)
+        return data
+
+
+def revoke_session(token: str) -> bool:
+    """Deletes a session token from the database."""
+    if not token:
+        return False
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM sessions WHERE session_token = ?;", (token,))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
+    """Retrieves user by ID."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE id = ?;", (user_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+
+def save_audit_record(
+    audit: AuditResult,
+    image_sha256: str = "",
+    pdf_filename: str = "",
+    inspector_name: str = "",
+    inspector_email: str = ""
+) -> Dict[str, Any]:
     """
     Persists an audit result into the SQL database.
     Replaces in-memory transient state with permanent relational records.
@@ -114,8 +312,9 @@ def save_audit_record(audit: AuditResult, image_sha256: str = "", pdf_filename: 
                 audit_id, created_at, commodity_name, brand, manufacturer,
                 verdict, overall_score, passed_count, warning_count, failed_count,
                 pdp_area_sqcm, min_font_height_mm, scale_factor,
-                image_sha256, image_url, pdf_filename, raw_audit_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                image_sha256, image_url, pdf_filename, raw_audit_json,
+                inspector_name, inspector_email
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             audit.audit_id,
             created_at,
@@ -133,7 +332,9 @@ def save_audit_record(audit: AuditResult, image_sha256: str = "", pdf_filename: 
             image_sha256,
             audit.image_url or "",
             pdf_filename,
-            raw_json
+            raw_json,
+            inspector_name,
+            inspector_email
         ))
 
         # Clear existing evaluations if updating
@@ -189,35 +390,60 @@ def get_audit_by_id(audit_id: str) -> Optional[Dict[str, Any]]:
         return data
 
 
-def list_recent_audits(limit: int = 50, search: Optional[str] = None) -> List[Dict[str, Any]]:
+def list_recent_audits(
+    limit: int = 50,
+    search: Optional[str] = None,
+    inspector_email: Optional[str] = None
+) -> List[Dict[str, Any]]:
     """
-    Returns recent audit records with optional search filter on commodity or manufacturer.
+    Returns recent audit records with optional search filter on commodity or manufacturer,
+    and optional scope filter by inspector email.
+    Clamps limit between 1 and 100 to prevent denial-of-service memory exhaustion.
     """
+    safe_limit = max(1, min(int(limit) if isinstance(limit, (int, float)) else 50, 100))
+    clean_email = inspector_email.strip().lower() if inspector_email else None
+
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        if search:
-            like_pat = f"%{search.strip()}%"
-            cursor.execute("""
-                SELECT audit_id, created_at, commodity_name, manufacturer,
-                       verdict, overall_score, passed_count, warning_count, failed_count,
-                       image_url, pdf_filename
-                FROM inspections
-                WHERE commodity_name LIKE ? OR manufacturer LIKE ? OR verdict LIKE ?
-                ORDER BY created_at DESC
-                LIMIT ?;
-            """, (like_pat, like_pat, like_pat, limit))
-        else:
-            cursor.execute("""
-                SELECT audit_id, created_at, commodity_name, manufacturer,
-                       verdict, overall_score, passed_count, warning_count, failed_count,
-                       image_url, pdf_filename
-                FROM inspections
-                ORDER BY created_at DESC
-                LIMIT ?;
-            """, (limit,))
+        conditions = []
+        params = []
 
+        if clean_email:
+            conditions.append("LOWER(inspector_email) = ?")
+            params.append(clean_email)
+
+        if search:
+            clean_search = str(search).strip()[:100]
+            like_pat = f"%{clean_search}%"
+            conditions.append("(commodity_name LIKE ? OR manufacturer LIKE ? OR verdict LIKE ? OR inspector_name LIKE ?)")
+            params.extend([like_pat, like_pat, like_pat, like_pat])
+
+        where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        query = f"""
+            SELECT audit_id, created_at, commodity_name, manufacturer,
+                   verdict, overall_score, passed_count, warning_count, failed_count,
+                   image_url, pdf_filename, inspector_name, inspector_email
+            FROM inspections
+            {where_clause}
+            ORDER BY created_at DESC
+            LIMIT ?;
+        """
+        params.append(safe_limit)
+        cursor.execute(query, params)
         rows = cursor.fetchall()
         return [dict(r) for r in rows]
+
+
+def count_inspector_audits(inspector_email: str) -> int:
+    """Counts statutory inspections completed by a specific officer."""
+    if not inspector_email:
+        return 0
+    clean_email = inspector_email.strip().lower()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM inspections WHERE LOWER(inspector_email) = ?;", (clean_email,))
+        row = cursor.fetchone()
+        return row[0] if row else 0
 
 
 def get_manufacturer_offence_count(manufacturer_name: str) -> int:

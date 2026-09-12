@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any, Tuple, Optional
 from app.config import RULES_FILE
 from app.extractor.entities import (
     ExtractedField,
@@ -33,14 +33,37 @@ class RulesEngine:
         self,
         extracted_fields: Dict[str, ExtractedField],
         pdp: PDPCalculation,
-        all_blocks: List[OCRTextBlock]
-    ) -> Tuple[List[RuleEvaluation], float, str, Dict[str, int]]:
+        all_blocks: List[OCRTextBlock],
+        angles: Optional[List[Any]] = None
+    ) -> Tuple[List[RuleEvaluation], float, str, Dict[str, Any]]:
         """
         Runs all rules and returns:
         (evaluations, overall_score, verdict, summary_counts)
+        Incorporates Statutory Exemptions (Rule 26 & Rule 3), Dual MRP checks,
+        and Optical Clarity assessments.
         """
         evaluations: List[RuleEvaluation] = []
         penalty_36 = self.rulebook.get("penalty_clauses", {}).get("section_36_1", "")
+
+        # Check Statutory Exemptions: Rule 26(a) Small Package & Rule 3 Institutional/Bulk
+        net_qty = extracted_fields.get("net_quantity")
+        is_small_package = False
+        is_bulk_package = False
+        exemptions: List[str] = []
+
+        if net_qty and net_qty.parsed_value is not None:
+            try:
+                num_val = float(net_qty.parsed_value)
+                u = (net_qty.unit or "").lower().strip()
+                if u in ["g", "gm", "gms", "ml", "mls"] and num_val <= 10.0:
+                    is_small_package = True
+                    exemptions.append("Rule 26(a) Small Package Exemption (≤ 10g/ml)")
+                elif (u in ["kg", "kgs", "l", "ltr", "ltrs", "liter", "liters"] and num_val > 25.0) or \
+                     (u in ["g", "gm", "gms", "ml", "mls"] and num_val > 25000.0):
+                    is_bulk_package = True
+                    exemptions.append("Rule 3 Bulk/Institutional Package Exemption (> 25 kg/L)")
+            except (ValueError, TypeError):
+                pass
 
         # 1. Evaluate Rule 6 Mandatory Declarations
         mandatory_defs = self.rulebook.get("mandatory_declarations", [])
@@ -49,6 +72,39 @@ class RulesEngine:
             field = extracted_fields.get(field_key)
 
             if not field:
+                # Statutory Exemption Checks for missing fields
+                if is_small_package and field_key == "mfg_date":
+                    evaluations.append(RuleEvaluation(
+                        rule_id=m_rule["id"],
+                        clause=m_rule["clause"],
+                        title=m_rule["title"],
+                        field_target=field_key,
+                        status="PASS",
+                        severity="LOW",
+                        message="Exempt under Rule 26(a): Date of manufacture/packing is exempt for packages with net quantity ≤ 10g or ≤ 10ml.",
+                        measured_value=f"Net Qty: {net_qty.parsed_value} {net_qty.unit}",
+                        expected_value="Exempt under Rule 26(a)",
+                        penalty_risk=None,
+                        statutory_ref="Legal Metrology (Packaged Commodities) Rules, 2011, Rule 26(a)"
+                    ))
+                    continue
+
+                if is_small_package and field_key == "unit_sale_price":
+                    evaluations.append(RuleEvaluation(
+                        rule_id=m_rule["id"],
+                        clause=m_rule["clause"],
+                        title=m_rule["title"],
+                        field_target=field_key,
+                        status="INFO",
+                        severity="LOW",
+                        message="Exempt under Rule 26(a): Unit Sale Price (USP) declaration is exempt for small packages ≤ 10g or ≤ 10ml.",
+                        measured_value=f"Net Qty: {net_qty.parsed_value} {net_qty.unit}",
+                        expected_value="Exempt under Rule 26(a)",
+                        penalty_risk=None,
+                        statutory_ref="Legal Metrology (Packaged Commodities) Rules, 2011, Rule 26(a)"
+                    ))
+                    continue
+
                 # Field is missing
                 if m_rule.get("required", True):
                     evaluations.append(RuleEvaluation(
@@ -102,11 +158,82 @@ class RulesEngine:
                         statutory_ref=m_rule["statutory_ref"]
                     ))
 
-        # 2. Evaluate Rule 9 & 13: Standard Units of Measurement
+        # 2. Institutional / Bulk Consumer Exemption Note (Rule 3)
+        if is_bulk_package:
+            evaluations.append(RuleEvaluation(
+                rule_id="RULE_3_BULK_EXEMPTION",
+                clause="Rule 3",
+                title="Rule 3 Institutional / Industrial Package Exemption",
+                field_target="net_quantity",
+                status="INFO",
+                severity="LOW",
+                message="Package net quantity exceeds 25 kg/L. If supplied directly to institutional or industrial consumers, retail declarations under Chapter II are exempt under Rule 3.",
+                measured_value=f"{net_qty.parsed_value} {net_qty.unit}",
+                expected_value="Institutional / Bulk class (> 25 kg/L)",
+                penalty_risk=None,
+                statutory_ref="Legal Metrology (Packaged Commodities) Rules, 2011, Rule 3"
+            ))
+
+        # 3. Multi-Angle Conflict: Dual MRP Violation Check (Rule 6(1)(e))
+        if angles and len(angles) > 1:
+            angle_mrps = []
+            for ang in angles:
+                flds = getattr(ang, "extracted_fields", {})
+                m_fld = flds.get("mrp")
+                if m_fld and isinstance(m_fld.parsed_value, dict):
+                    amt = m_fld.parsed_value.get("amount")
+                    if amt is not None:
+                        try:
+                            angle_mrps.append((float(amt), getattr(ang, "label", f"Angle {getattr(ang, 'angle_id', '')}")))
+                        except (ValueError, TypeError):
+                            pass
+                elif m_fld and isinstance(m_fld.parsed_value, (int, float)):
+                    angle_mrps.append((float(m_fld.parsed_value), getattr(ang, "label", f"Angle {getattr(ang, 'angle_id', '')}")))
+
+            if len(angle_mrps) >= 2:
+                min_mrp, min_label = min(angle_mrps, key=lambda x: x[0])
+                max_mrp, max_label = max(angle_mrps, key=lambda x: x[0])
+                if min_mrp > 0 and (max_mrp - min_mrp) / min_mrp > 0.01:
+                    evaluations.append(RuleEvaluation(
+                        rule_id="RULE_6_1_E_DUAL_MRP",
+                        clause="Rule 6(1)(e)",
+                        title="Prohibition of Dual MRP / Conflicting Price Declarations",
+                        field_target="mrp",
+                        status="FAIL",
+                        severity="CRITICAL",
+                        message=f"Dual MRP violation: Conflicting retail prices detected across package angles ({min_label}: ₹{min_mrp:.2f} vs {max_label}: ₹{max_mrp:.2f}). Declaring different MRPs for identical package units violates Rule 6(1)(e).",
+                        measured_value=f"Conflicting MRPs: ₹{min_mrp:.2f} vs ₹{max_mrp:.2f}",
+                        expected_value="Single uniform MRP across all package angles",
+                        penalty_risk=penalty_36,
+                        statutory_ref="Legal Metrology (Packaged Commodities) Rules, 2011, Rule 6(1)(e)"
+                    ))
+
+        # 4. Evaluate Rule 9 & 13: Standard Units of Measurement
         self._check_units(extracted_fields, penalty_36, evaluations)
 
-        # 3. Evaluate Rule 7: Minimum Font Size / Height on PDP
-        self._check_font_heights(extracted_fields, pdp, penalty_36, evaluations)
+        # 5. Evaluate Rule 7: Minimum Font Size / Height on PDP (with Rule 26(a) relaxation)
+        self._check_font_heights(extracted_fields, pdp, penalty_36, evaluations, is_small_package=is_small_package)
+
+        # 6. Low Optical Clarity / Glare Assessment
+        ocr_confidence = 1.0
+        if all_blocks:
+            confs = [b.confidence for b in all_blocks if getattr(b, "confidence", None) is not None]
+            if confs:
+                ocr_confidence = round(float(sum(confs) / len(confs)), 3)
+                if ocr_confidence < 0.50:
+                    evaluations.append(RuleEvaluation(
+                        rule_id="OPTICAL_CLARITY_WARNING",
+                        clause="Advisory / Image Clarity",
+                        title="Optical Clarity & Glare Assessment",
+                        field_target="general",
+                        status="WARNING",
+                        severity="MEDIUM",
+                        message=f"Low optical clarity detected (average OCR confidence: {ocr_confidence * 100:.1f}%). Reflection, glare, or motion blur may obscure statutory declarations. Re-scan recommended for definitive legal audit.",
+                        measured_value=f"{ocr_confidence * 100:.1f}% confidence",
+                        expected_value="≥ 50.0% optical confidence",
+                        penalty_risk=None,
+                        statutory_ref="Legal Metrology Ingestion Standard"
+                    ))
 
         # Calculate score and verdict
         total_evals = len(evaluations)
@@ -115,7 +242,7 @@ class RulesEngine:
         warn_count = sum(1 for e in evaluations if e.status == "WARNING")
         info_count = sum(1 for e in evaluations if e.status == "INFO")
 
-        # Weighted score: FAIL has heavy deduction (-18), WARNING (-7)
+        # Weighted score: FAIL has heavy deduction (-20 CRITICAL, -15 other), WARNING (-7)
         score = 100.0
         for e in evaluations:
             if e.status == "FAIL":
@@ -138,7 +265,9 @@ class RulesEngine:
             "passed": pass_count,
             "failed": fail_count,
             "warnings": warn_count,
-            "info": info_count
+            "info": info_count,
+            "exemptions": exemptions,
+            "ocr_confidence": ocr_confidence
         }
 
         return evaluations, score, verdict, summary
@@ -311,7 +440,8 @@ class RulesEngine:
         extracted_fields: Dict[str, ExtractedField],
         pdp: PDPCalculation,
         penalty: str,
-        evals: List[RuleEvaluation]
+        evals: List[RuleEvaluation],
+        is_small_package: bool = False
     ):
         req_min_height = pdp.required_min_font_height_mm
         pdp_ref = self.rulebook.get("rule_7_font_height_tables", {}).get(
@@ -321,8 +451,23 @@ class RulesEngine:
         net_qty = extracted_fields.get("net_quantity")
         if net_qty and net_qty.font_height_mm:
             measured_mm = net_qty.font_height_mm
+            # Rule 26(a) small package exemption relaxes font height constraints
+            if is_small_package:
+                evals.append(RuleEvaluation(
+                    rule_id="RULE_7_FONT_HEIGHT",
+                    clause="Rule 7 & Rule 26(a)",
+                    title="Minimum Font / Numeral Height on PDP",
+                    field_target="net_quantity",
+                    status="PASS",
+                    severity="LOW",
+                    message=f"Relaxed under Rule 26(a): Small packages (≤ 10g/ml) are exempt from standard font minimums ({measured_mm:.2f} mm measured).",
+                    measured_value=f"{measured_mm:.2f} mm",
+                    expected_value="Relaxed (Rule 26(a) Exemption)",
+                    penalty_risk=None,
+                    statutory_ref="Legal Metrology (Packaged Commodities) Rules, 2011, Rule 26(a)"
+                ))
             # Allow 10% tolerance due to optical blur / angle
-            if measured_mm < (req_min_height * 0.9):
+            elif measured_mm < (req_min_height * 0.9):
                 evals.append(RuleEvaluation(
                     rule_id="RULE_7_FONT_HEIGHT",
                     clause="Rule 7(1) Table 1 & Table 2",

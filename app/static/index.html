@@ -1,35 +1,86 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SYNX - Legal Metrology Compliance Inspection Workstation | SIH 2026</title>
-  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=5.7.0">
+  <script>
+    // Force default to clean light theme
+    try {
+      const saved = localStorage.getItem('synx_theme');
+      if (saved === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    } catch(e) {}
+  </script>
+  <!-- Google Identity Services SDK -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
-  <!-- App Header -->
-  <header class="app-header">
-    <div class="brand-section">
-      <div class="logo-badge">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- ====================================================================
+       Clean, Friendly Top Navbar
+       ==================================================================== -->
+  <header class="clean-navbar">
+    <div class="brand-wrapper">
+      <div class="brand-logo-pill">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           <path d="m9 12 2 2 4-4"/>
         </svg>
-        SYNX
       </div>
       <div>
-        <div class="brand-title">
-          Legal Metrology Compliance Inspector
-          <span class="header-tag">PS #26034</span>
+        <div class="brand-name">
+          SYNX Compliance AI
+          <span class="brand-badge">PS #26034</span>
         </div>
-        <div class="brand-subtitle">Automated Packaged Commodities Rules, 2011 Verification Engine</div>
+        <div class="brand-desc">Legal Metrology (Packaged Commodities) Rules, 2011 Automated Verification</div>
       </div>
     </div>
 
-    <div class="header-actions">
-      <button class="btn btn-secondary theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle Light / Dark Theme">
-        <svg id="themeIconSun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <div class="nav-actions">
+      <button class="btn btn-secondary" onclick="openHistoryModal()" title="View past audit records">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <ellipse cx="12" cy="5" rx="9" ry="3"/>
+          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+        </svg>
+        Audit History
+      </button>
+
+      <button class="btn btn-secondary" onclick="openMobileConnectModal()" title="Scan with mobile camera">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
+          <path d="M12 18h.01"/>
+        </svg>
+        Mobile Scanner
+      </button>
+
+      <button class="btn btn-secondary" onclick="openWebcamModal()" title="Live optical webcam capture">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+          <circle cx="12" cy="13" r="3"/>
+        </svg>
+        Webcam
+      </button>
+
+      <button class="btn btn-secondary" onclick="openRulebookModal()" title="Inspect digitized rules">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+          <path d="M6 6h10"/>
+          <path d="M6 10h10"/>
+        </svg>
+        Rulebook
+      </button>
+
+      <button class="btn btn-secondary theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Switch Light / Dark Theme">
+        <svg id="themeIconSun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="5"/>
           <line x1="12" y1="1" x2="12" y2="3"/>
           <line x1="12" y1="21" x2="12" y2="23"/>
@@ -40,403 +91,587 @@
           <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
           <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
         </svg>
-        <svg id="themeIconMoon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+        <svg id="themeIconMoon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
         </svg>
         <span id="themeText">Theme</span>
       </button>
-      <button class="btn btn-primary" onclick="openMobileConnectModal()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
-          <path d="M12 18h.01"/>
-        </svg>
-        Connect Mobile Scanner
-      </button>
-      <button class="btn btn-secondary" onclick="openWebcamModal()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
-          <circle cx="12" cy="13" r="3"/>
-        </svg>
-        Webcam
-      </button>
-      <button class="btn btn-secondary" onclick="openHistoryModal()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <ellipse cx="12" cy="5" rx="9" ry="3"/>
-          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
-          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
-        </svg>
-        SQL Ledger
-      </button>
-      <button class="btn btn-secondary" onclick="openRulebookModal()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
-        Rulebook
-      </button>
-      <button class="btn btn-success" id="btnDownloadPdf" style="display: none;" onclick="downloadCurrentAuditPdf()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="7 10 12 15 17 10"/>
-          <line x1="12" x2="12" y1="15" y2="3"/>
-        </svg>
-        Download PDF Audit
-      </button>
+
+      <!-- Authentication Section (Google Sign-In / Inspector Profile) -->
+      <div id="authNavContainer" style="display: flex; align-items: center; position: relative;">
+        <!-- Logged Out: Google Sign In Button -->
+        <button type="button" class="btn btn-google-login" id="btnOpenLoginModal" onclick="openLoginModal()" title="Sign in with Google">
+          <svg width="15" height="15" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.15C3.27 21.36 7.35 24 12 24Z"/>
+            <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.26C.46 8.16 0 9.94 0 12s.46 3.84 1.26 5.42l4.02-3.15Z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.27 2.64 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"/>
+          </svg>
+          <span>Sign in with Google</span>
+        </button>
+
+        <!-- Logged In: Inspector Profile Badge & Dropdown -->
+        <div id="userProfileBadge" class="user-profile-badge" style="display: none;" onclick="toggleUserDropdown(event)" title="Account details">
+          <div class="user-avatar-circle" id="userAvatarContainer">
+            <span id="userInitials">IN</span>
+          </div>
+          <div class="user-info-brief">
+            <div class="user-display-name" id="userDisplayName">Inspector</div>
+            <div class="user-role-tag" id="userRoleTag">Officer</div>
+          </div>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); margin-left: 2px;">
+            <path d="m6 9 6 6 6-6"/>
+          </svg>
+
+          <!-- Dropdown Menu -->
+          <div class="user-dropdown-menu" id="userDropdownMenu" style="display: none;">
+            <div class="user-dropdown-header">
+              <div style="font-weight: 700; color: var(--text-primary); font-size: 0.84rem;" id="dropdownUserName">Inspector Name</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted); word-break: break-all; margin-top: 1px;" id="dropdownUserEmail">officer@legalmetrology.gov.in</div>
+              <div style="margin-top: 5px;">
+                <span class="badge badge-success" style="font-size: 0.65rem;" id="dropdownUserRole">Legal Metrology Inspector</span>
+              </div>
+            </div>
+            <div class="user-dropdown-divider"></div>
+            <button type="button" class="user-dropdown-item" onclick="openHistoryModal(); hideUserDropdown();">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+              </svg>
+              <span>My Statutory Audit Ledger</span>
+            </button>
+            <button type="button" class="user-dropdown-item" onclick="openRoleModal(); hideUserDropdown();">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              <span>Officer Role Management</span>
+            </button>
+            <button type="button" class="user-dropdown-item text-danger" onclick="logoutUser()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+              <span>Sign Out</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </header>
 
-  <!-- Main Workstation Layout -->
-  <main class="main-container">
+  <!-- ====================================================================
+       Main Page Content
+       ==================================================================== -->
+  <div class="content-wrapper">
 
-    <!-- Left Column: Input, Calibration & Visual Inspector -->
-    <div class="left-pane">
-      
-      <!-- 1. Image Ingestion Card -->
-      <div class="card">
-        <div class="card-title">
-          <div class="card-title-left">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
-              <circle cx="9" cy="9" r="2"/>
-              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
-            </svg>
-            <span>1. Ingest Packaged Commodity</span>
-          </div>
-          <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">Multi-Angle Supported</span>
-        </div>
+    <!-- Main Clean 2-Column Workstation Grid -->
+    <main class="workspace-grid">
 
-        <!-- Upload Dropzone -->
-        <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-          <div class="upload-icon-container">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
-              <path d="M12 12v9"/>
-              <path d="m16 16-4-4-4 4"/>
-            </svg>
-          </div>
-          <div class="upload-title">Drop Commodity Images or Click to Browse</div>
-          <div class="upload-subtitle">
-            Upload <b>Front, Back, Sides, and Cap/Flap</b> together for unified 100% compliance verification
-          </div>
-          <input type="file" id="fileInput" accept="image/*" multiple style="display: none;" onchange="handleFileSelect(event)">
-        </div>
+      <!-- Left Column: Image Ingestion, Calibration & Canvas -->
+      <div class="left-col">
 
-        <!-- Pre-loaded Benchmark Test Suite (Slide 10) -->
-        <div style="margin-top: 1rem;">
-          <div class="benchmark-section-title">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M10 2v7.31"/>
-              <path d="M14 9.3V1.99"/>
-              <path d="M8.5 2h7"/>
-              <path d="M14 9.3a6.5 6.5 0 1 1-4 0"/>
-              <path d="M5.52 16h12.96"/>
-            </svg>
-            Ground-Truth Benchmark Edge Cases
-          </div>
-          <div class="benchmark-grid" id="sampleGrid">
-            <div style="font-size: 0.72rem; color: var(--text-muted); padding: 0.5rem 0;">Loading benchmark samples...</div>
-          </div>
-        </div>
-
-        <!-- Physical Dimension Calibration Panel -->
-        <div style="margin-top: 1rem; border-top: 1px solid var(--border-subtle); padding-top: 0.75rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-            <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; font-weight: 600; color: var(--text-primary);">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
-                <line x1="12" y1="9" x2="12" y2="13"/>
-                <line x1="12" y1="17" x2="12.01" y2="17"/>
+        <!-- Card: Upload & Calibration -->
+        <div class="card">
+          <div class="card-header-clean">
+            <div class="card-header-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-primary);">
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                <circle cx="9" cy="9" r="2"/>
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
               </svg>
-              <span>Physical Metric Calibration (Rule 7 Verification)</span>
+              <span>Product Ingestion & Calibration</span>
             </div>
-            <select id="calibMode" class="form-control" style="width: auto; padding: 2px 6px; font-size: 0.74rem;" onchange="toggleCalibMode()">
-              <option value="dimensions">Package Dimensions (W × H)</option>
-              <option value="reference_object">Reference Object (₹5 Coin / Card)</option>
-            </select>
+            <span class="card-header-badge">Multi-Angle Supported</span>
           </div>
 
-          <!-- Dimension Inputs -->
-          <div class="form-row" id="dimFields">
-            <div class="form-group">
-              <label>Package Type</label>
-              <select id="pkgType" class="form-control">
-                <option value="rectangular">Rectangular Box / Pouch</option>
-                <option value="cylindrical">Cylindrical Can / Bottle</option>
-                <option value="other">Other Shaped Package</option>
+          <!-- Dropzone -->
+          <div class="clean-dropzone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+            <div class="dropzone-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
+                <path d="M12 12v9"/>
+                <path d="m16 16-4-4-4 4"/>
+              </svg>
+            </div>
+            <div class="dropzone-title">Drop Product Label Photo or PDF Document Here</div>
+            <div class="dropzone-subtitle">Multi-angle verification for all package faces & panels</div>
+            <div class="dropzone-limits">
+              <span class="limit-pill">Max 6 Files</span>
+              <span class="limit-pill">10 MB Limit / File</span>
+              <span class="limit-pill">JPG, PNG, WEBP, PDF</span>
+            </div>
+            <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/bmp,application/pdf" multiple style="display: none;" onchange="handleFileSelect(event)">
+          </div>
+
+          <!-- Upload Preview List (Shows when files are uploaded) -->
+          <div class="upload-preview-container" id="uploadPreviewContainer" style="display: none;">
+            <div class="upload-preview-header">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-primary);">
+                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                <span>Uploaded Images & Documents</span>
+                <span class="upload-preview-badge" id="uploadCountBadge">0 / 6</span>
+              </div>
+              <button type="button" class="btn-clear-uploads" onclick="clearUploadedFiles()">Clear All</button>
+            </div>
+            <div class="upload-preview-grid" id="uploadPreviewGrid">
+              <!-- Dynamically populated file cards -->
+            </div>
+          </div>
+
+          <!-- Calibration Settings -->
+          <div class="calibration-box">
+            <div class="calibration-header">
+              <div class="calibration-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-primary);">
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <span>Scale Calibration (Rule 7 Font Check)</span>
+              </div>
+              <select id="calibMode" class="form-control" style="width: auto; padding: 2px 8px; font-size: 0.74rem;" onchange="toggleCalibMode()">
+                <option value="dimensions">Package Dimensions (W × H)</option>
+                <option value="reference_object">Reference Object (₹5 Coin / Card)</option>
               </select>
             </div>
-            <div class="form-group">
-              <label>Width (mm)</label>
-              <input type="number" id="pkgWidth" class="form-control" value="120" step="1">
-            </div>
-            <div class="form-group">
-              <label>Height (mm)</label>
-              <input type="number" id="pkgHeight" class="form-control" value="180" step="1">
-            </div>
-            <div class="form-group">
-              <label>Depth (mm)</label>
-              <input type="number" id="pkgDepth" class="form-control" value="40" step="1">
-            </div>
-          </div>
 
-          <!-- Reference Object Inputs (Hidden by default) -->
-          <div class="form-row" id="refFields" style="display: none;">
-            <div class="form-group" style="grid-column: span 2;">
-              <label>Reference Object</label>
-              <select id="refObjectId" class="form-control">
-                <option value="coin_5rs">₹5 Coin (Standard 23 mm diameter)</option>
-                <option value="coin_1rs">₹1 Coin (21.93 mm diameter)</option>
-                <option value="credit_card">Standard ID / Credit Card (85.6 mm width)</option>
-              </select>
+            <!-- Dimension Fields -->
+            <div class="form-row" id="dimFields">
+              <div class="form-group">
+                <label>Package Type</label>
+                <select id="pkgType" class="form-control">
+                  <option value="rectangular">Rectangular Box / Pouch</option>
+                  <option value="cylindrical">Cylindrical Bottle / Can</option>
+                  <option value="other">Other Package Shape</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Width (mm)</label>
+                <input type="number" id="pkgWidth" class="form-control" value="120" min="5" max="2500" step="1">
+              </div>
+              <div class="form-group">
+                <label>Height (mm)</label>
+                <input type="number" id="pkgHeight" class="form-control" value="180" min="5" max="2500" step="1">
+              </div>
+              <div class="form-group">
+                <label>Depth (mm)</label>
+                <input type="number" id="pkgDepth" class="form-control" value="40" min="0" max="2500" step="1">
+              </div>
             </div>
-            <div class="form-group">
-              <label>Measured Ref Pixels</label>
-              <input type="number" id="refPixelSize" class="form-control" value="65" placeholder="px in image">
-            </div>
-          </div>
 
-          <div style="margin-top: 0.85rem;">
-            <button class="btn btn-primary btn-action-hero" id="btnRunAudit" onclick="runAudit()">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <!-- Reference Object Fields -->
+            <div class="form-row" id="refFields" style="display: none;">
+              <div class="form-group" style="grid-column: span 2;">
+                <label>Reference Object</label>
+                <select id="refObjectId" class="form-control">
+                  <option value="coin_5rs">₹5 Coin (Standard 23 mm)</option>
+                  <option value="coin_1rs">₹1 Coin (21.93 mm)</option>
+                  <option value="credit_card">Standard ID Card (85.6 mm)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Measured Ref Pixels</label>
+                <input type="number" id="refPixelSize" class="form-control" value="65" placeholder="px">
+              </div>
+            </div>
+
+            <button class="btn btn-primary btn-hero-scan" id="btnRunAudit" onclick="runAudit()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
               </svg>
-              Execute Statutory Compliance Audit
+              Analyze Product Compliance
             </button>
           </div>
         </div>
 
+        <!-- Card: Optical Spatial Canvas -->
+        <div class="card">
+          <div class="card-header-clean">
+            <div class="card-header-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-primary);">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="22" x2="18" y1="12" y2="12"/>
+                <line x1="6" x2="2" y1="12" y2="12"/>
+                <line x1="12" x2="12" y1="6" y2="2"/>
+                <line x1="12" x2="12" y1="22" y2="18"/>
+              </svg>
+              <span>Interactive Label Inspector</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <button class="btn btn-secondary btn-clahe-toggle" id="btnToggleClahe" onclick="toggleClaheView()" style="display: none; height: 26px; padding: 2px 8px; font-size: 0.72rem; align-items: center; gap: 4px;" title="Toggle between raw camera image and OpenCV CLAHE Anti-Glare Equalization">
+                <span>✨ Anti-Glare (CLAHE)</span>
+              </button>
+              <span id="canvasStats" class="card-header-badge" style="color: var(--accent-primary);">Ready</span>
+            </div>
+          </div>
+
+          <!-- Multi-Angle Switcher Tabs -->
+          <div id="angleTabsContainer" style="display: none; gap: 0.35rem; margin-bottom: 0.6rem; overflow-x: auto; padding-bottom: 2px;"></div>
+
+          <div class="canvas-container" id="canvasContainer">
+            <canvas id="labelCanvas"></canvas>
+            <div id="loadingOverlay" style="display: none; position: absolute; text-align: center; color: #fff;">
+              <div class="spinner"></div>
+              <div style="margin-top: 8px; font-size: 0.85rem; font-weight: 600;">Scanning OCR & Evaluating Rules...</div>
+            </div>
+            <div class="canvas-toolbar">
+              <span><span class="legend-dot dot-pass"></span> Compliant</span>
+              <span><span class="legend-dot dot-fail"></span> Violation</span>
+              <span><span class="legend-dot dot-warn"></span> Warning</span>
+              <span><span class="legend-dot dot-clahe" style="background: #06b6d4;"></span> CLAHE Recovered</span>
+              <span><span class="legend-dot dot-other"></span> Detected Block</span>
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      <!-- 2. Interactive Spatial Canvas Viewport -->
-      <div class="card" style="padding: 0.85rem;">
-        <div class="card-title" style="margin-bottom: 0.5rem;">
-          <div class="card-title-left">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="22" x2="18" y1="12" y2="12"/>
-              <line x1="6" x2="2" y1="12" y2="12"/>
-              <line x1="12" x2="12" y1="6" y2="2"/>
-              <line x1="12" x2="12" y1="22" y2="18"/>
+      <!-- Right Column: Clean Awaiting State or Scanned Results -->
+      <div class="right-col">
+
+        <!-- 1. Clean Awaiting State (Shows Before Scan) -->
+        <div class="card awaiting-card" id="awaitingCard">
+          <div class="awaiting-icon-wrapper">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="m9 12 2 2 4-4"/>
             </svg>
-            <span>2. Optical Spatial Text & Bounding Inspector</span>
           </div>
-          <span id="canvasStats" style="font-size: 0.72rem; color: var(--text-cyan); font-family: var(--font-mono);">Ready</span>
+          <h3>Ready for Compliance Inspection</h3>
+          <p>Upload your packaged commodity photo on the left and click <b>Analyze Product Compliance</b> to run automated verification.</p>
         </div>
 
-        <!-- Multi-Angle Switcher Tabs -->
-        <div id="angleTabsContainer" style="display: none; gap: 0.4rem; margin-bottom: 0.6rem; overflow-x: auto; padding-bottom: 2px;"></div>
+        <!-- 2. Scanned Results Container (Revealed After Scan) -->
+        <div class="results-container" id="resultsContainer">
 
-        <div class="canvas-container" id="canvasContainer">
-          <canvas id="labelCanvas"></canvas>
-          <div id="loadingOverlay" style="display: none; position: absolute; text-align: center; color: #fff;">
-            <div class="spinner"></div>
-            <div style="margin-top: 8px; font-size: 0.82rem; font-weight: 600;">Processing OCR & Statutory Rules Engine...</div>
+          <!-- Executive Verdict Banner -->
+          <div class="verdict-banner verdict-CONDITIONAL" id="verdictBanner">
+            <div>
+              <div class="verdict-title-label">Compliance Verdict</div>
+              <div id="verdictText">AWAITING SCAN</div>
+              <div class="stat-pills" id="statPills">
+                <span class="stat-pill pill-pass" id="cntPass">0 Passed</span>
+                <span class="stat-pill pill-warn" id="cntWarn">0 Warnings</span>
+                <span class="stat-pill pill-fail" id="cntFail">0 Violations</span>
+              </div>
+              <div class="exemption-pills" id="exemptionPills" style="display: flex; gap: 0.35rem; margin-top: 0.4rem; flex-wrap: wrap;"></div>
+            </div>
+            <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem;">
+              <div>
+                <div class="score-label">Compliance Score</div>
+                <div class="score-badge" id="scoreValue">--%</div>
+              </div>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end;">
+                <button class="btn btn-success" id="btnDownloadPdf" style="display: none; height: 34px;" onclick="downloadCurrentAuditPdf()">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" x2="12" y1="15" y2="3"/>
+                  </svg>
+                  Download PDF Report
+                </button>
+                <button class="btn btn-danger" id="btnReportGovt" style="display: none; height: 34px;" onclick="reportToGovtPortal()" title="Report non-compliance to official Government Consumer Grievance Portal (NCH)">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                  Report Violation (Govt Portal)
+                </button>
+              </div>
+            </div>
           </div>
-          <div class="canvas-toolbar">
-            <span><span class="legend-dot dot-pass"></span> Compliant</span>
-            <span><span class="legend-dot dot-fail"></span> Violation</span>
-            <span><span class="legend-dot dot-warn"></span> Warning</span>
-            <span><span class="legend-dot dot-other"></span> Detected Block</span>
+
+          <!-- Optical Clarity / Glare Advisory Banner -->
+          <div id="clarityBanner" class="clarity-advisory-banner" style="display: none;"></div>
+
+          <!-- Non-Compliance Grievance Notice (Shown when product fails compliance) -->
+          <div class="card grievance-banner" id="grievanceNotice" style="display: none;">
+            <div style="display: flex; align-items: flex-start; gap: 0.85rem;">
+              <div class="grievance-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </div>
+              <div style="flex: 1;">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.25rem;">
+                  <h4 style="margin: 0; font-size: 0.92rem; font-weight: 700; color: var(--accent-red);">Statutory Violation Notice — Dept. of Consumer Affairs</h4>
+                  <span class="status-badge badge-FAIL">Legal Metrology Act Sec. 36</span>
+                </div>
+                <p style="margin: 0 0 0.65rem 0; font-size: 0.82rem; color: var(--text-secondary); line-height: 1.45;">
+                  This packaged commodity violates mandatory statutory declarations under Legal Metrology Rules, 2011. You can escalate and file a formal grievance with the <b>National Consumer Helpline (NCH / INGRAM)</b>, Ministry of Consumer Affairs, Government of India.
+                </p>
+                <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+                  <button class="btn btn-danger" style="height: 32px; font-size: 0.8rem; padding: 0 0.85rem;" onclick="reportToGovtPortal()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                      <polyline points="15 3 21 3 21 9"/>
+                      <line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                    File Grievance on consumerhelpline.gov.in
+                  </button>
+                  <button class="btn btn-secondary" style="height: 32px; font-size: 0.8rem; padding: 0 0.85rem;" onclick="copyViolationDraft()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                    </svg>
+                    <span id="copyDraftBtnText">Copy Violation Summary</span>
+                  </button>
+                  <span style="font-size: 0.78rem; color: var(--text-muted); font-weight: 500;">Helpline: <b>1915</b> (Toll Free)</span>
+                </div>
+              </div>
+            </div>
           </div>
+
+          <!-- Mandatory Declarations Checklist (Rule 6) -->
+          <div class="card">
+            <div class="card-header-clean">
+              <div class="card-header-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-primary);">
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                  <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+                  <path d="m9 14 2 2 4-4"/>
+                </svg>
+                <span>Compliance Checklist (Rule 6 Mandatory Declarations)</span>
+              </div>
+              <span class="card-header-badge">8 Declarations</span>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Declaration</th>
+                    <th>Extracted Content</th>
+                    <th>Panel</th>
+                    <th>Font Size</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="declarationsTableBody">
+                  <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                      Upload label image(s) to execute verification.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Collapsible Technical & Statutory Legal Details -->
+          <details class="tech-details">
+            <summary>
+              <span>View Technical Details (Rule 7 PDP & Penalties)</span>
+              <span style="font-size: 0.72rem; color: var(--accent-primary);">Expand ▾</span>
+            </summary>
+            <div class="tech-details-content">
+              <!-- PDP Metrics Summary -->
+              <div class="pdp-grid">
+                <div class="pdp-item">
+                  <div class="pdp-item-label">Principal Display Panel</div>
+                  <div class="pdp-item-val" id="pdpAreaVal">-- cm²</div>
+                  <div class="pdp-item-sub" id="pdpFormula">A = W × H</div>
+                </div>
+                <div class="pdp-item">
+                  <div class="pdp-item-label">Statutory Min Height</div>
+                  <div class="pdp-item-val" id="pdpMinFontVal" style="color: var(--accent-amber);">≥ -- mm</div>
+                  <div class="pdp-item-sub" id="pdpRefClause">Rule 7(1)</div>
+                </div>
+                <div class="pdp-item">
+                  <div class="pdp-item-label">Pixel Scale Factor</div>
+                  <div class="pdp-item-val" id="scaleFactorVal" style="color: var(--accent-cyan);">-- mm/px</div>
+                  <div class="pdp-item-sub">Optical Calibration</div>
+                </div>
+              </div>
+
+              <!-- Statutory Rule Evaluations & Penalties Table -->
+              <div class="table-responsive" style="margin-top: 0.5rem;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Clause</th>
+                      <th>Requirement</th>
+                      <th>Findings & Legal Rationale</th>
+                      <th>Verdict</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rulesTableBody">
+                    <tr>
+                      <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 1rem;">
+                        No active audit ledger.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </details>
+
         </div>
 
       </div>
 
-    </div>
+    </main>
 
-    <!-- Right Column: Statutory Audit Ledger -->
-    <div class="right-pane">
+  </div>
 
-      <!-- Executive Verdict Banner -->
-      <div class="verdict-banner verdict-CONDITIONAL" id="verdictBanner">
-        <div>
-          <div class="score-label">Statutory Compliance Status</div>
-          <div style="font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em;" id="verdictText">AWAITING SCAN</div>
-          <div class="stat-pills" id="statPills">
-            <span class="stat-pill pill-pass" id="cntPass">0 Passed</span>
-            <span class="stat-pill pill-warn" id="cntWarn">0 Warnings</span>
-            <span class="stat-pill pill-fail" id="cntFail">0 Violations</span>
-          </div>
-        </div>
-        <div style="text-align: right;">
-          <div class="score-label">Compliance Index</div>
-          <div class="score-badge" id="scoreValue">--%</div>
-        </div>
-      </div>
+  <!-- ====================================================================
+       Modals (Rulebook, Mobile, Webcam, History)
+       ==================================================================== -->
 
-      <!-- PDP & Dimensional Compliance Card -->
-      <div class="card">
-        <div class="card-title">
-          <div class="card-title-left">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/>
-              <path d="m14.5 12.5 2-2"/>
-              <path d="m11.5 9.5 2-2"/>
-              <path d="m8.5 6.5 2-2"/>
-              <path d="m17.5 15.5 2-2"/>
-            </svg>
-            <span>Principal Display Panel (Rule 7 Metrics)</span>
-          </div>
-          <span style="font-size: 0.7rem; font-family: var(--font-mono); color: var(--text-cyan);" id="pdpRefClause">Rule 7(1) Table 1</span>
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.65rem; text-align: center;">
-          <div style="background: var(--bg-subtle); padding: 0.65rem 0.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-            <div style="font-size: 0.68rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 500;">Calculated PDP Area</div>
-            <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary); font-family: var(--font-mono); margin: 2px 0;" id="pdpAreaVal">-- cm²</div>
-            <div style="font-size: 0.64rem; color: var(--text-muted); font-family: var(--font-mono);" id="pdpFormula">A = W × H</div>
-          </div>
-          <div style="background: var(--bg-subtle); padding: 0.65rem 0.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-            <div style="font-size: 0.68rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 500;">Rule 7 Min Font Height</div>
-            <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-amber); font-family: var(--font-mono); margin: 2px 0;" id="pdpMinFontVal">≥ -- mm</div>
-            <div style="font-size: 0.64rem; color: var(--text-muted);">Statutory Threshold</div>
-          </div>
-          <div style="background: var(--bg-subtle); padding: 0.65rem 0.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-            <div style="font-size: 0.68rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 500;">Pixel Scale Factor</div>
-            <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-cyan); font-family: var(--font-mono); margin: 2px 0;" id="scaleFactorVal">-- mm/px</div>
-            <div style="font-size: 0.64rem; color: var(--text-muted);">Optical Calibration</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Mandatory Declarations Matrix (Rule 6 Breakdown) -->
-      <div class="card">
-        <div class="card-title">
-          <div class="card-title-left">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-              <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
-              <path d="m9 14 2 2 4-4"/>
-            </svg>
-            <span>Mandatory Declarations Matrix</span>
-          </div>
-          <span style="font-size: 0.68rem; color: var(--text-muted); font-family: var(--font-mono);">Rule 6 Statutory Audit</span>
-        </div>
-        <div class="table-responsive">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Declaration</th>
-                <th>Extracted Content</th>
-                <th>Source Panel / Angle</th>
-                <th>Font Height</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="declarationsTableBody">
-              <tr>
-                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
-                  Upload label image(s) or select a benchmark sample above to execute verification.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Statutory Rule Evaluation & Penalty Assessment Table -->
-      <div class="card">
-        <div class="card-title">
-          <div class="card-title-left">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/>
-              <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/>
-              <path d="M7 21h10"/>
-              <path d="M12 3v18"/>
-              <path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>
-            </svg>
-            <span>Statutory Rule Evaluations & Penalties</span>
-          </div>
-          <span style="font-size: 0.68rem; color: var(--text-muted); font-family: var(--font-mono);">Act 2009 Sec 36(1)</span>
-        </div>
-        <div class="table-responsive">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Clause</th>
-                <th>Requirement</th>
-                <th>Findings & Technical Rationale</th>
-                <th>Verdict</th>
-              </tr>
-            </thead>
-            <tbody id="rulesTableBody">
-              <tr>
-                <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
-                  No active audit ledger.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-    </div>
-
-  </main>
-
-  <!-- Digital Rulebook JSON Editor Modal -->
+  <!-- Digital Rulebook Modal -->
   <div class="modal-backdrop" id="rulebookModal">
     <div class="modal-content">
       <div class="modal-header">
         <h3>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-            <circle cx="12" cy="12" r="3"/>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+            <path d="M6 6h10"/>
+            <path d="M6 10h10"/>
           </svg>
           Digital Legal Metrology Rulebook (Live JSON)
         </h3>
-        <button class="btn btn-secondary" onclick="closeRulebookModal()" style="height: 28px; width: 28px; padding: 0;">✕</button>
+        <button class="btn btn-secondary" onclick="closeRulebookModal()" style="height: 30px; width: 30px; padding: 0;">✕</button>
       </div>
       <div class="modal-body">
-        <p style="font-size: 0.74rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
           Statutory rules are decoupled into versioned JSON. Government circular amendments can be updated here live with instant hot-reloading.
         </p>
         <textarea id="rulebookJsonEditor" class="json-textarea"></textarea>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeRulebookModal()">Cancel</button>
-        <button class="btn btn-success" onclick="saveRulebook()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-            <polyline points="17 21 17 13 7 13 7 21"/>
-            <polyline points="7 3 7 8 15 8"/>
-          </svg>
-          Save & Hot-Reload Rules
-        </button>
+        <button class="btn btn-primary" onclick="saveRulebook()">Save & Hot-Reload</button>
       </div>
     </div>
   </div>
 
   <!-- Mobile Phone Connect QR Modal -->
   <div class="modal-backdrop" id="mobileConnectModal">
-    <div class="modal-content" style="max-width: 480px; text-align: center;">
+    <div class="modal-content" style="max-width: 440px; text-align: center;">
       <div class="modal-header">
         <h3>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
             <path d="M12 18h.01"/>
           </svg>
-          Connect Mobile Scanner (Field Mode)
+          Connect Mobile Scanner
         </h3>
-        <button class="btn btn-secondary" onclick="closeMobileConnectModal()" style="height: 28px; width: 28px; padding: 0;">✕</button>
+        <button class="btn btn-secondary" onclick="closeMobileConnectModal()" style="height: 30px; width: 30px; padding: 0;">✕</button>
       </div>
       <div class="modal-body" style="padding: 1.5rem;">
-        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem;">
-          Scan this QR code with your mobile camera or open the link below. Ensure phone & PC are on the same local network:
+        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+          Scan with your phone camera (on same Wi-Fi) or open the companion interface directly:
         </p>
-        <div id="mobileQrContainer" style="display: flex; justify-content: center; padding: 12px; background: #ffffff; border-radius: var(--radius-md); width: fit-content; margin: 0 auto 1rem auto; box-shadow: var(--shadow-sm);">
+        <div id="mobileQrContainer" style="display: flex; justify-content: center; padding: 12px; background: #ffffff; border-radius: var(--radius-md); width: fit-content; margin: 0 auto 0.75rem auto; box-shadow: var(--shadow-sm);">
           <div id="mobileQrCode"></div>
         </div>
-        <div style="margin-bottom: 1rem;">
-          <a id="mobileDirectLink" href="#" target="_blank" style="color: var(--text-cyan); font-size: 0.8rem; word-break: break-all; font-family: var(--font-mono);">
+        <div style="margin-bottom: 0.75rem; display: flex; flex-direction: column; align-items: center; gap: 0.4rem;">
+          <a id="mobileDirectLink" href="#" target="_blank" style="color: var(--accent-primary); font-size: 0.8rem; word-break: break-all; font-family: 'JetBrains Mono', monospace; font-weight: 600;">
             Loading link...
           </a>
+          <button type="button" class="btn btn-secondary" id="btnOpenMobileTab" onclick="openMobileViewInTab()" style="font-size: 0.75rem; height: 30px; padding: 0 12px; gap: 6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+            Open Mobile Companion in New Tab
+          </button>
         </div>
+
+        <!-- Live Thumbnail Previews of Received Photos -->
+        <div id="mobileReceivedSection" style="display: none; margin: 0.85rem 0; padding: 0.75rem; background: var(--bg-subtle); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+          <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem; text-align: left;">
+            Received Panels (<span id="mobileReceivedCount">0</span>):
+          </div>
+          <div id="mobileReceivedThumbs" style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;"></div>
+        </div>
+
         <div id="mobileSyncStatus" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.8rem; color: var(--text-amber); font-weight: 500;">
           <span class="spinner"></span> Waiting for photo transmission from mobile device...
         </div>
+
+        <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.85rem; line-height: 1.4;">
+          💡 <b>Tip:</b> If on university/hostel Wi-Fi with client isolation, use your phone's personal hotspot or test via the "Open in New Tab" button.
+        </p>
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer" style="justify-content: space-between;">
         <button class="btn btn-secondary" onclick="closeMobileConnectModal()">Close</button>
+        <button class="btn btn-primary" id="btnForceAuditMobile" style="display: none;" onclick="forceAuditMobilePhotos()">
+          ⚡ Audit Received Photos Now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Google Authentication & Inspector Sign-In Modal -->
+  <div class="modal-backdrop" id="loginModal" style="display: none;">
+    <div class="modal-content" style="max-width: 420px; text-align: center;">
+      <div class="modal-header">
+        <h3>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-primary);">
+            <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          Enforcement Officer Sign-In
+        </h3>
+        <button class="btn btn-secondary" onclick="closeLoginModal()" style="height: 30px; width: 30px; padding: 0;">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 1.5rem;">
+        <div style="margin-bottom: 1.25rem;">
+          <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.35rem;">
+            Sign in to SYNX Compliance AI
+          </div>
+          <p style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.4; margin: 0;">
+            Authenticate with your official Google credentials to record statutory enforcement inspections under Legal Metrology Act, 2009.
+          </p>
+        </div>
+
+        <!-- Google Identity Services Button Container -->
+        <div id="googleSignInContainer" style="display: flex; justify-content: center; margin-bottom: 0.85rem; min-height: 44px;">
+          <div id="googleSignInDiv"></div>
+        </div>
+
+        <div id="googleConfigNotice" style="display: none; font-size: 0.72rem; color: var(--text-amber); background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 4px; padding: 6px 10px; margin-bottom: 0.85rem; text-align: left;">
+          💡 <b>Notice:</b> Set <code>GOOGLE_CLIENT_ID</code> in environment to activate production Google OAuth sign-in. Use the 1-Click Demo below for immediate evaluation.
+        </div>
+
+        <div class="auth-divider">
+          <span>OR QUICK DEMO EVALUATION</span>
+        </div>
+
+        <!-- 1-Click Quick Inspector Demo Login -->
+        <div style="display: flex; flex-direction: column; gap: 0.6rem; margin-top: 1rem;">
+          <button type="button" class="btn btn-secondary demo-officer-btn" onclick="loginDemoInspector('Inspector Rajesh Sharma', 'rajesh.sharma@legalmetrology.gov.in')">
+            <div class="demo-avatar">RS</div>
+            <div style="text-align: left; flex: 1;">
+              <div style="font-weight: 600; font-size: 0.82rem; color: var(--text-primary);">Inspector Rajesh Sharma</div>
+              <div style="font-size: 0.7rem; color: var(--text-muted);">rajesh.sharma@legalmetrology.gov.in • Senior Officer</div>
+            </div>
+            <span style="font-size: 0.7rem; color: var(--accent-primary); font-weight: 600;">1-Click</span>
+          </button>
+
+          <button type="button" class="btn btn-secondary demo-officer-btn" onclick="loginDemoInspector('Officer Priya Patel', 'priya.patel@legalmetrology.gov.in')">
+            <div class="demo-avatar" style="background: #0ea5e9;">PP</div>
+            <div style="text-align: left; flex: 1;">
+              <div style="font-weight: 600; font-size: 0.82rem; color: var(--text-primary);">Officer Priya Patel</div>
+              <div style="font-size: 0.7rem; color: var(--text-muted);">priya.patel@legalmetrology.gov.in • Quality Auditor</div>
+            </div>
+            <span style="font-size: 0.7rem; color: var(--accent-primary); font-weight: 600;">1-Click</span>
+          </button>
+        </div>
+
+        <div style="margin-top: 1.25rem; font-size: 0.7rem; color: var(--text-muted); line-height: 1.4;">
+          🔒 Secure session. Your verified officer identity is stamped on all statutory PDF certificates and SQLite audit logs.
+        </div>
       </div>
     </div>
   </div>
@@ -446,13 +681,13 @@
     <div class="modal-content" style="max-width: 580px; text-align: center;">
       <div class="modal-header">
         <h3>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
             <circle cx="12" cy="13" r="3"/>
           </svg>
-          Webcam Live Optical Capture
+          Webcam Live Capture
         </h3>
-        <button class="btn btn-secondary" onclick="closeWebcamModal()" style="height: 28px; width: 28px; padding: 0;">✕</button>
+        <button class="btn btn-secondary" onclick="closeWebcamModal()" style="height: 30px; width: 30px; padding: 0;">✕</button>
       </div>
       <div class="modal-body">
         <video id="webcamVideo" autoplay playsinline style="width: 100%; height: 340px; object-fit: cover; border-radius: var(--radius-md); background: #000; border: 1px solid var(--border-color);"></video>
@@ -461,7 +696,7 @@
       <div class="modal-footer" style="justify-content: space-between;">
         <button class="btn btn-secondary" onclick="closeWebcamModal()">Cancel</button>
         <button class="btn btn-primary" onclick="captureWebcamPhoto()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"/>
             <circle cx="12" cy="12" r="3"/>
           </svg>
@@ -471,33 +706,37 @@
     </div>
   </div>
 
-  <!-- Relational SQL Audit Ledger Modal -->
+  <!-- Relational SQL History Modal -->
   <div class="modal-backdrop" id="historyModal">
     <div class="modal-content" style="max-width: 900px;">
       <div class="modal-header">
-        <h3>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <h3 id="historyModalTitle">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <ellipse cx="12" cy="5" rx="9" ry="3"/>
             <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
             <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
           </svg>
           Statutory Inspection SQL Ledger
-          <span style="font-size: 0.68rem; font-family: var(--font-mono); color: var(--text-cyan); background: var(--accent-blue-subtle); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--accent-blue-border);">metrology_audit.db</span>
         </h3>
-        <button class="btn btn-secondary" onclick="closeHistoryModal()" style="height: 28px; width: 28px; padding: 0;">✕</button>
+        <button class="btn btn-secondary" onclick="closeHistoryModal()" style="height: 30px; width: 30px; padding: 0;">✕</button>
       </div>
       <div class="modal-body">
-        <!-- Analytics & Search Header -->
-        <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
-          <div style="display: flex; gap: 0.75rem; font-size: 0.75rem;" id="sqlAnalyticsBar">
-            <span style="color: var(--text-muted);">Loading SQL stats...</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+          <div style="display: flex; gap: 0.4rem; align-items: center;" id="ledgerScopeTabs">
+            <button type="button" class="btn btn-sm btn-primary" id="btnScopeMine" onclick="switchLedgerScope('mine')">
+              👤 My Audits
+            </button>
+            <button type="button" class="btn btn-sm btn-secondary" id="btnScopeAll" onclick="switchLedgerScope('all')">
+              🌐 All Department Records
+            </button>
           </div>
-          <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <input type="text" id="historySearchInput" class="form-control" placeholder="Search commodity or manufacturer..." style="width: 260px;" oninput="onHistorySearch()">
-          </div>
+          <input type="text" id="historySearchInput" class="form-control" placeholder="Search commodity or manufacturer..." style="width: 260px;" oninput="onHistorySearch()">
         </div>
 
-        <!-- History Ledger Table -->
+        <div style="display: flex; gap: 0.75rem; font-size: 0.78rem; margin-bottom: 0.85rem; padding: 0.4rem 0.6rem; background: var(--bg-tertiary); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); flex-wrap: wrap;" id="sqlAnalyticsBar">
+          <span style="color: var(--text-muted);">Loading SQL stats...</span>
+        </div>
+
         <div class="table-responsive" style="max-height: 420px; overflow-y: auto;">
           <table class="data-table">
             <thead>
@@ -526,11 +765,57 @@
     </div>
   </div>
 
-  <!-- Floating Canvas Tooltip -->
+  <!-- ====================================================================
+       Officer Role Management Modal (RBAC)
+       ==================================================================== -->
+  <div class="modal-backdrop" id="roleModal">
+    <div class="modal-content" style="max-width: 850px;">
+      <div class="modal-header">
+        <h3>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          Officer Directory &amp; Statutory Role Management
+        </h3>
+        <button class="btn btn-secondary" onclick="closeRoleModal()" style="height: 30px; width: 30px; padding: 0;">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.85rem;">
+          Assign and manage statutory enforcement privileges. Only officers holding the <b>Legal Metrology Inspector</b> role are authorized to access department-wide inspection ledgers.
+        </p>
+        <div id="roleAlertContainer" style="margin-bottom: 0.85rem;"></div>
+        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Officer</th>
+                <th>Email</th>
+                <th>Department</th>
+                <th>Current Role</th>
+                <th style="text-align: right;">Assign Role</th>
+              </tr>
+            </thead>
+            <tbody id="roleTableBody">
+              <tr>
+                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                  Loading officer directory...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeRoleModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Tooltip -->
   <div class="floating-tooltip" id="canvasTooltip"></div>
 
   <!-- Scripts -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="/static/js/app.js"></script>
+  <script src="/static/js/app.js?v=5.8.2"></script>
 </body>
 </html>

@@ -2,6 +2,10 @@ import math
 from typing import Dict, Any, Tuple
 from app.extractor.entities import PDPCalculation, CalibrationData
 
+MIN_DIMENSION_MM = 5.0
+MAX_DIMENSION_MM = 2500.0
+OVERSIZE_THRESHOLD_MM = 1000.0
+
 def calculate_pdp_area(
     package_type: str,
     width_mm: float,
@@ -12,28 +16,36 @@ def calculate_pdp_area(
     """
     Calculates Principal Display Panel (PDP) area in square centimeters (cm²)
     under Legal Metrology (Packaged Commodities) Rules, 2011, Rule 7.
+    Enforces boundary clamping (5mm <= dim <= 2500mm).
     """
     pkg_type = package_type.lower()
     
+    # Boundary clamping
+    w = max(MIN_DIMENSION_MM, min(MAX_DIMENSION_MM, float(width_mm)))
+    h = max(MIN_DIMENSION_MM, min(MAX_DIMENSION_MM, float(height_mm)))
+    d = max(0.0, min(MAX_DIMENSION_MM, float(depth_mm))) if depth_mm else 0.0
+    diam = max(0.0, min(MAX_DIMENSION_MM, float(diameter_mm))) if diameter_mm else 0.0
+
     if pkg_type == "cylindrical":
         # Rule 7: 40% of height x circumference (or 40% of height x pi x diameter)
-        eff_diam = diameter_mm if diameter_mm > 0 else width_mm
+        eff_diam = diam if diam > 0 else w
+        eff_diam = max(MIN_DIMENSION_MM, eff_diam)
         circumference = math.pi * eff_diam
-        area_sqmm = 0.40 * height_mm * circumference
-        formula = f"0.40 * Height ({height_mm:.1f}mm) * (π * Diam ({eff_diam:.1f}mm))"
+        area_sqmm = 0.40 * h * circumference
+        formula = f"0.40 * Height ({h:.1f}mm) * (π * Diam ({eff_diam:.1f}mm))"
     elif pkg_type == "other":
         # Rule 7: 40% of total surface area
-        if depth_mm > 0:
-            total_surface_sqmm = 2 * (width_mm * height_mm + height_mm * depth_mm + width_mm * depth_mm)
+        if d > 0:
+            total_surface_sqmm = 2 * (w * h + h * d + w * d)
             area_sqmm = 0.40 * total_surface_sqmm
             formula = f"0.40 * Total Surface Area ({total_surface_sqmm:.1f}mm²)"
         else:
-            area_sqmm = 0.40 * (width_mm * height_mm)
-            formula = f"0.40 * Face Area ({width_mm * height_mm:.1f}mm²)"
+            area_sqmm = 0.40 * (w * h)
+            formula = f"0.40 * Face Area ({w * h:.1f}mm²)"
     else:  # Rectangular default
         # Rule 7: Product of height and width of one face
-        area_sqmm = width_mm * height_mm
-        formula = f"Width ({width_mm:.1f}mm) * Height ({height_mm:.1f}mm)"
+        area_sqmm = w * h
+        formula = f"Width ({w:.1f}mm) * Height ({h:.1f}mm)"
     
     area_sqcm = area_sqmm / 100.0  # 1 cm² = 100 mm²
     return round(area_sqcm, 2), formula
@@ -82,10 +94,14 @@ def compute_pdp_and_font_requirements(
     """
     Returns PDPCalculation and mm_per_pixel scale factor.
     """
-    # 1. Determine physical package dimensions
-    w_mm = calibration.package_width_mm or 120.0
-    h_mm = calibration.package_height_mm or 180.0
-    d_mm = calibration.package_depth_mm or 40.0
+    # 1. Determine physical package dimensions with boundary clamping
+    raw_w = calibration.package_width_mm if calibration.package_width_mm is not None else 120.0
+    raw_h = calibration.package_height_mm if calibration.package_height_mm is not None else 180.0
+    raw_d = calibration.package_depth_mm if calibration.package_depth_mm is not None else 40.0
+    
+    w_mm = max(MIN_DIMENSION_MM, min(MAX_DIMENSION_MM, float(raw_w)))
+    h_mm = max(MIN_DIMENSION_MM, min(MAX_DIMENSION_MM, float(raw_h)))
+    d_mm = max(0.0, min(MAX_DIMENSION_MM, float(raw_d)))
     
     # 2. Compute mm_per_pixel
     if calibration.mm_per_pixel and calibration.mm_per_pixel > 0:

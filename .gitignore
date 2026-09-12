@@ -8,3 +8,6 @@ __pycache__/
 data/reports/*
 data/uploads/*
 !.gitkeep
+.env
+.env.*
+scratch/

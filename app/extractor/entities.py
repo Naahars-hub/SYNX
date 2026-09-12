@@ -17,6 +17,7 @@ class OCRTextBlock(BaseModel):
     bbox: BoundingBox
     height_px: float
     height_mm: Optional[float] = None
+    source_enhancement: Optional[str] = "raw"  # "raw" or "clahe"
 
 class ExtractedField(BaseModel):
     field_type: str  # e.g., 'mrp', 'net_quantity', 'mfg_date', 'manufacturer', 'consumer_care', etc.
@@ -74,6 +75,10 @@ class ImageAngleResult(BaseModel):
     image_height: int
     ocr_blocks: List[OCRTextBlock] = []
     extracted_fields: Dict[str, ExtractedField] = {}
+    clahe_image_url: Optional[str] = None
+    glare_percentage: float = 0.0
+    clahe_applied: bool = True
+    blocks_recovered_by_clahe: int = 0
 
 class AuditResult(BaseModel):
     audit_id: str
@@ -90,6 +95,10 @@ class AuditResult(BaseModel):
     rule_evaluations: List[RuleEvaluation]
     overall_score: float  # 0 to 100
     verdict: str  # COMPLIANT, NON_COMPLIANT, CONDITIONAL
-    summary: Dict[str, int]
+    summary: Dict[str, Any]
     angles: List[ImageAngleResult] = []
+    exemptions: List[str] = []
+    ocr_confidence: Optional[float] = None
+    total_glare_percentage: Optional[float] = None
+    blocks_recovered_by_clahe: int = 0
 
