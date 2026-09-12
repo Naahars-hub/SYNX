@@ -1,0 +1,130 @@
+{
+  "rulebook_id": "LMR_2011_IN_V1",
+  "title": "Legal Metrology (Packaged Commodities) Rules, 2011",
+  "statutory_act": "The Legal Metrology Act, 2009 (Act No. 1 of 2010)",
+  "authority": "Department of Consumer Affairs, Government of India",
+  "version": "2011.amended.2024",
+  "penalty_clauses": {
+    "section_36_1": "Section 36(1) of Legal Metrology Act, 2009: Fine up to ₹25,000 for first offence; up to ₹50,000 for second offence; up to ₹1,00,000 or imprisonment up to 1 year for subsequent offences."
+  },
+  "mandatory_declarations": [
+    {
+      "id": "RULE_6_1_A",
+      "clause": "Rule 6(1)(a)",
+      "title": "Manufacturer / Packer / Importer Details",
+      "field_target": "manufacturer",
+      "description": "Name and complete address of the manufacturer, packer, or importer must be clearly declared.",
+      "severity": "CRITICAL",
+      "required": true,
+      "requires_address_detail": true,
+      "statutory_ref": "Legal Metrology (Packaged Commodities) Rules, 2011, Rule 6(1)(a)"
+    },
+    {
+      "id": "RULE_6_1_B",
+      "clause": "Rule 6(1)(b)",
+      "title": "Common or Generic Commodity Name",
+      "field_target": "commodity_name",
+      "description": "The common or generic name of the commodity contained in the package must be prominently declared.",
+      "severity": "HIGH",
+      "required": true,
+      "statutory_ref": "Legal Metrology (Packaged Commodities) Rules, 2011, Rule 6(1)(b)"
+    },
+    {
+      "id": "RULE_6_1_C",
+      "clause": "Rule 6(1)(c)",
+      "title": "Net Quantity Declaration",
+      "field_target": "net_quantity",
+      "description": "Net quantity in terms of standard unit of weight, measure, or count must be clearly stated.",
+      "severity": "CRITICAL",
+      "required": true,
+      "statutory_ref": "Legal Metrology (Packaged Commodities) Rules, 2011, Rule 6(1)(c)"
+    },
+    {
+      "id": "RULE_6_1_D",
+      "clause": "Rule 6(1)(d)",
+      "title": "Month and Year of Manufacture / Packing",
+      "field_target": "mfg_date",
+      "description": "The month and year of manufacture, packing, or import must be declared on every package.",
+      "severity": "HIGH",
+      "required": true,
+      "statutory_ref": "Legal Metrology (Packaged Commodities) Rules, 2011, Rule 6(1)(d)"
+    },
+    {
+      "id": "RULE_6_1_E_MRP",
+      "clause": "Rule 6(1)(e)",
+      "title": "Maximum Retail Price (MRP) & Tax Inclusivity",
+      "field_target": "mrp",
+      "description": "MRP must be declared in Indian Currency including all taxes: 'MRP Rs. XX.XX (incl. of all taxes)' or '₹ XX.XX (incl. of all taxes)'.",
+      "severity": "CRITICAL",
+      "required": true,
+      "statutory_ref": "Legal Metrology (Packaged Commodities) Rules, 2011, Rule 6(1)(e)"
+    },
+    {
+      "id": "RULE_6_1_E_USP",
+      "clause": "Rule 6(1)(e)",
+      "title": "Unit Sale Price (USP)",
+      "field_target": "unit_sale_price",
+      "description": "Unit Sale Price (e.g. ₹/g, ₹/kg, ₹/ml, ₹/l, or ₹/unit) must be declared where net quantity exceeds threshold or general retail commodities.",
+      "severity": "MEDIUM",
+      "required": false,
+      "statutory_ref": "Legal Metrology (Packaged Commodities) Rules, 2011, Rule 6(1)(e) as amended"
+    },
+    {
+      "id": "RULE_6_1_F",
+      "clause": "Rule 6(1)(f)",
+      "title": "Consumer Care / Grievance Redressal",
+      "field_target": "consumer_care",
+      "description": "Name, address, telephone number, and e-mail address of the person/office to be contacted for consumer grievances.",
+      "severity": "CRITICAL",
+      "required": true,
+      "required_subfields": ["phone", "email"],
+      "statutory_ref": "Legal Metrology (Packaged Commodities) Rules, 2011, Rule 6(1)(f)"
+    },
+    {
+      "id": "RULE_6_10",
+      "clause": "Rule 6(10)",
+      "title": "Country of Origin",
+      "field_target": "country_of_origin",
+      "description": "Country of origin must be stated prominently (e.g. 'Made in India', 'Country of Origin: India').",
+      "severity": "HIGH",
+      "required": true,
+      "statutory_ref": "Legal Metrology (Packaged Commodities) Rules, 2011, Rule 6(10)"
+    }
+  ],
+  "standard_units": {
+    "valid_units": ["g", "kg", "ml", "l", "m", "cm", "mm", "n", "u"],
+    "invalid_mappings": {
+      "gms": "g",
+      "gm": "g",
+      "g.": "g",
+      "kgs": "kg",
+      "kg.": "kg",
+      "mls": "ml",
+      "ml.": "ml",
+      "ltr": "l",
+      "ltrs": "l",
+      "liters": "l",
+      "litre": "l",
+      "litres": "l",
+      "lbs": "kg",
+      "oz": "g"
+    },
+    "statutory_ref": "Legal Metrology (Packaged Commodities) Rules, 2011, Rule 9 & Rule 13"
+  },
+  "rule_7_font_height_tables": {
+    "pdp_area_table": [
+      { "max_area_sqcm": 50, "min_height_mm": 1.0, "blown_min_height_mm": 2.0 },
+      { "max_area_sqcm": 100, "min_height_mm": 1.5, "blown_min_height_mm": 3.0 },
+      { "max_area_sqcm": 500, "min_height_mm": 2.0, "blown_min_height_mm": 4.0 },
+      { "max_area_sqcm": 2500, "min_height_mm": 4.0, "blown_min_height_mm": 6.0 },
+      { "max_area_sqcm": 9999999, "min_height_mm": 6.0, "blown_min_height_mm": 6.0 }
+    ],
+    "quantity_table": [
+      { "max_quantity_g_ml": 50, "min_height_mm": 1.0 },
+      { "max_quantity_g_ml": 200, "min_height_mm": 2.0 },
+      { "max_quantity_g_ml": 1000, "min_height_mm": 4.0 },
+      { "max_quantity_g_ml": 9999999, "min_height_mm": 6.0 }
+    ],
+    "statutory_ref": "Legal Metrology (Packaged Commodities) Rules, 2011, Rule 7(1) Table 1 & Table 2"
+  }
+}

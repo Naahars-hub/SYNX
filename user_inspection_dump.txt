@@ -1,0 +1,133 @@
+
+=======================================================
+ANGLE 1: mobile_20260911_225412_17891474352404316418146844437175.jpg
+Resolution: (3072, 4096)
+Total OCR blocks detected: 52
+--- Detected Texts ---
+  [0.97] 'THERMALLY PROCESSED'
+  [0.96] 'READY TO SERVE FRUIT DRINK'
+  [0.96] 'CONTAINS FRUIT'
+  [0.98] 'INGREDIENTS'
+  [0.74] 'NGREDIENTSWATERUGARMANGOUL（11）'
+  [0.73] 'ACIDITU3）'
+  [0.90] 'NATUREIDENTICALFLAVOURING SUBSTANCESMANGO)'
+  [0.76] 'STABILZER（INS466）PRSERVATIVEIN1）'
+  [0.85] 'ANTIOXIDANT(INS 300 AND FOOD COLOUR(INS 110)'
+  [0.94] '(INS-INTERNATIONAL NUMBERING SYSTEM)'
+  [0.94] 'NUTRITIONAL INFORMATION(TYPICAL VALUES）'
+  [0.98] 'PERSERVE'
+  [0.96] 'SERVING SIZE:100ml'
+  [0.99] '100ml'
+  [0.92] '%RDA*'
+  [0.95] 'SERVINGS PER PACK:4'
+  [0.99] '63.0'
+  [0.99] '3.2%'
+  [0.88] 'ENERGY (Kcal)'
+  [0.97] '0.0'
+  [1.00] '0.0%'
+  [0.97] 'PROTEIN(g)'
+  [0.84] '15.7'
+  [0.96] 'CARBOHYDRATE(g)'
+  [0.99] '15.6'
+  [0.93] 'TOTAL SUGARS(g)'
+  [0.99] '14.2'
+  [0.99] '28.4%'
+  [0.91] 'ADDED SUGARS(AS SUCROSE)（g)'
+  [0.93] '1.4'
+  [0.92] 'NATURAL FRUIT SUGARS(g)'
+  [0.99] '0.0'
+  [0.88] '0.0%'
+  [0.96] 'TOTALFAT(g)'
+  [1.00] '09'
+  [0.95] '25.9'
+  [0.94] '1.3%'
+  [0.96] 'SODIUM(mg)'
+  [0.91] '*PERCENT RDA VALUES ARE BASED ON A 2000kcaI ENERGY DIET'
+  [0.94] 'TASTES BEST WHEN CHILLED'
+  [0.75] 'STOREAWAYFROMSUNLIHTSTOREINACOOLRANHGINC'
+  [0.75] 'PLACESHAKEWEEFORECOUINGEFRIGERATEER'
+  [0.88] 'OPENINGANDCONSUMEWITHINTHREE DAYSDO NOTBUYIFTHE'
+  [0.94] 'BOTTLEISLEAKING OR SEALIS BROKEN'
+  [0.90] 'CRUSH THE BOTTLE AFTER USE'
+  [0.95] 'WARNINGCOMMERCIALEXPORTOFTHISPACKIS'
+  [0.82] 'AEEPYON'
+  [0.66] 'STRICTLBITEDABLOSON'
+  [0.78] 'FORMFG'
+  [0.93] 'UNITSALEPRICE PERMLAND'
+  [0.76] 'MRP(INCFALTXES）EFERTOOY'
+  [0.76] 'RECCLEL'
+--- Extracted Fields ---
+  net_quantity: 'SERVING SIZE:100ml' (conf=0.96)
+     parsed: 100.0
+  commodity_name: 'THERMALLY PROCESSED' (conf=0.97)
+     parsed: THERMALLY PROCESSED
+
+=======================================================
+ANGLE 2: mobile_20260911_225437_17891474550476736489296658925077.jpg
+Resolution: (3072, 4096)
+Total OCR blocks detected: 4
+--- Detected Texts ---
+  [0.57] 'O'
+  [0.83] '28/12/226Rs.0.075/'
+  [0.97] 'Rs.30.00'
+  [0.59] '二'
+--- Extracted Fields ---
+  mrp: '28/12/226Rs.0.075/' (conf=0.83)
+     parsed: {'amount': 0.07, 'inclusive_of_all_taxes': False}
+
+=======================================================
+ANGLE 3: mobile_20260911_225452_17891474781028604333845352577069.jpg
+Resolution: (3072, 4096)
+Total OCR blocks detected: 26
+--- Detected Texts ---
+  [0.69] 'ESTEREXRWHA'
+  [0.79] 'PIESWADA,ANDHERI(EAST)'
+  [0.81] 's'
+  [0.55] '0RARN'
+  [0.78] 'FRTTREECHARACTERSFLOTOANDSEEBEL'
+  [0.91] 'BEP PARLEAGROPVT.LTD'
+  [0.87] 'MNDIDEEP-462046'
+  [0.64] 'ssat'
+  [0.82] 'MADHYAPRADESH.'
+  [0.85] 'Lic.No.1001202600060'
+  [0.72] 'PIG PARAROPVDVIAGENALL'
+  [0.80] 'PATALGANGA-410220,'
+  [0.83] 'fssal'
+  [0.82] 'MIAHARASHTRA.'
+  [0.93] 'Lic.No.1001202200035'
+  [0.85] 'HYD PARLE AGRO PVT.LTD.'
+  [0.82] 'PRGHANYLARAMSANGAREDDYDIST,'
+  [0.85] 'HELANGANA-502307'
+  [0.96] 'Lic.No.1001404700052'
+  [0.95] 'MAY WE'
+  [0.69] 'CALUS:18086648'
+  [0.82] 'RESH YO'
+  [0.94] 'W.PARLEAGRO.COM'
+  [0.59] 'WIETOUSATHEUMBAADORES'
+  [1.00] '400ml'
+  [0.95] 'NET QUANTITY'
+--- Extracted Fields ---
+  net_quantity: '400ml' (conf=1.00)
+     parsed: 400.0
+  manufacturer: 'BEP PARLEAGROPVT.LTD' (conf=0.91)
+     parsed: {'declaration': 'FRTTREECHARACTERSFLOTOANDSEEBEL BEP PARLEAGROPVT.LTD MNDIDEEP-462046 ssat', 'has_pincode': True}
+  consumer_care: 'Lic.No.1001202600060' (conf=0.85)
+     parsed: {'email': None, 'phone': '001202600060', 'has_both': False}
+  commodity_name: 'ESTEREXRWHA' (conf=0.69)
+     parsed: ESTEREXRWHA
+
+=======================================================
+ANGLE 4: mobile_20260911_225506_17891474962658153085502394856541.jpg
+Resolution: (3072, 4096)
+Total OCR blocks detected: 5
+--- Detected Texts ---
+  [0.98] 'REAYTOSERVE'
+  [0.89] "FRUIT DRINK'"
+  [0.99] 'DRIN'
+  [0.97] '09N'
+  [0.90] 'Parle Agro'
+--- Extracted Fields ---
+  net_quantity: '09N' (conf=0.97)
+     parsed: 9.0
+  commodity_name: 'REAYTOSERVE' (conf=0.98)
+     parsed: REAYTOSERVE

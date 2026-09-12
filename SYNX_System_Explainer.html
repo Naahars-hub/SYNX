@@ -1,0 +1,350 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYNX - System Architecture & Technical Explainer</title>
+  <style>
+    :root {
+      --primary: #0f172a;
+      --accent: #2563eb;
+      --accent-light: #eff6ff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --pass: #10b981;
+      --fail: #ef4444;
+      --warn: #f59e0b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background: var(--bg); color: var(--text); line-height: 1.6; padding: 2rem 1rem; }
+    .container { max-width: 960px; margin: 0 auto; background: var(--card-bg); padding: 3rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid var(--border); }
+    
+    .header-bar { border-bottom: 2px solid var(--accent); padding-bottom: 1.5rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-start; }
+    .badge { display: inline-block; background: #dbeafe; color: #1e40af; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 9999px; text-transform: uppercase; margin-bottom: 0.5rem; }
+    h1 { font-size: 1.85rem; color: var(--primary); font-weight: 800; line-height: 1.25; }
+    .subtitle { color: var(--text-muted); font-size: 0.95rem; margin-top: 0.4rem; }
+    
+    .btn-print { background: var(--accent); color: white; border: none; padding: 0.65rem 1.2rem; border-radius: 6px; font-weight: 600; font-size: 0.85rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; transition: background 0.2s; }
+    .btn-print:hover { background: #1d4ed8; }
+
+    .summary-box { background: var(--accent-light); border-left: 4px solid var(--accent); padding: 1.25rem 1.5rem; border-radius: 0 8px 8px 0; margin-bottom: 2.5rem; font-size: 1rem; color: #1e3a8a; }
+    
+    h2 { font-size: 1.35rem; color: var(--primary); margin: 2rem 0 1rem; display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+    
+    /* Visual Diagram */
+    .flow-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2.5rem; }
+    .flow-step { background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 1rem; text-align: center; position: relative; }
+    .flow-num { width: 26px; height: 26px; background: var(--accent); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; margin: 0 auto 0.5rem; }
+    .flow-title { font-size: 0.85rem; font-weight: 700; color: var(--primary); }
+    .flow-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+    /* Step Cards */
+    .step-card { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.25rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    .step-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
+    .step-badge { background: #e0e7ff; color: #3730a3; font-weight: 700; font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; }
+    .step-heading { font-size: 1.1rem; font-weight: 700; color: var(--primary); }
+    .step-body { font-size: 0.92rem; color: #334155; }
+    
+    .analogy-box { background: #f8fafc; border-left: 3px solid #64748b; padding: 0.75rem 1rem; margin-top: 0.75rem; font-size: 0.88rem; border-radius: 0 6px 6px 0; color: #475569; }
+    .analogy-label { font-weight: 700; color: #0f172a; margin-right: 0.25rem; }
+
+    /* Tables */
+    .styled-table { width: 100%; border-collapse: collapse; margin: 1.5rem 0 2.5rem; font-size: 0.88rem; }
+    .styled-table th { background: #0f172a; color: white; text-align: left; padding: 0.75rem 1rem; font-weight: 600; font-size: 0.85rem; }
+    .styled-table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .styled-table tr:nth-child(even) { background: #f8fafc; }
+    .rule-tag { background: #e2e8f0; color: #0f172a; font-family: monospace; font-size: 0.8rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+
+    /* Footer */
+    .footer { margin-top: 3rem; border-top: 1px solid var(--border); padding-top: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.85rem; }
+
+    @media print {
+      body { background: white; padding: 0; }
+      .container { border: none; box-shadow: none; padding: 0; max-width: 100%; }
+      .btn-print { display: none; }
+      .step-card { page-break-inside: avoid; border: 1px solid #ccc; }
+      .styled-table { page-break-inside: avoid; }
+    }
+    @media (max-width: 768px) {
+      .container { padding: 1.5rem; }
+      .flow-grid { grid-template-columns: repeat(2, 1fr); }
+      .header-bar { flex-direction: column; gap: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <div class="header-bar">
+      <div>
+        <span class="badge">Smart India Hackathon 2026 • Problem ID: 26034</span>
+        <h1>SYNX: Legal Metrology Compliance Checker</h1>
+        <div class="subtitle">Complete Technical Architecture & Plain-English Explainer Guide</div>
+      </div>
+      <button class="btn-print" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    </div>
+
+    <div class="summary-box">
+      <b>💡 The 10-Second Summary:</b><br>
+      SYNX is an automated AI-powered packaging inspector. It photographs consumer goods (chips, cold drinks, biscuits), 
+      reads all text, measures letter heights in real-world millimeters, checks all 8 statutory requirements under the 
+      <b>Legal Metrology (Packaged Commodities) Rules, 2011</b>, and automatically generates a legally valid court certificate with fine calculations.
+    </div>
+
+    <h2>🗺️ 1. Pipeline Flowchart (Data Journey)</h2>
+    <div class="flow-grid">
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div class="flow-title">Capture & Sync</div>
+        <div class="flow-sub">Phone QR / Webcam</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div class="flow-title">Glare Removal</div>
+        <div class="flow-sub">CLAHE Filter</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div class="flow-title">Spatial OCR</div>
+        <div class="flow-sub">PaddleOCR ONNX</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">4</div>
+        <div class="flow-title">mm Calibration</div>
+        <div class="flow-sub">Rule 7 PDP Math</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">5</div>
+        <div class="flow-title">Entity NLP</div>
+        <div class="flow-sub">Regex & Heuristics</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">6</div>
+        <div class="flow-title">3D Assembly</div>
+        <div class="flow-sub">Multi-Angle Merger</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">7</div>
+        <div class="flow-title">Legal Rules</div>
+        <div class="flow-sub">Sec 36(1) Fines</div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">8</div>
+        <div class="flow-title">PDF Certificate</div>
+        <div class="flow-sub">SHA-256 Hashed</div>
+      </div>
+    </div>
+
+    <h2>🔬 2. Step-by-Step Technical Breakdown</h2>
+
+    <!-- Step 1 -->
+    <div class="step-card">
+      <div class="step-header">
+        <span class="step-badge">STEP 1</span>
+        <div class="step-heading">Smartphone Zero-Install Ingestion (REST API & QR Session)</div>
+      </div>
+      <div class="step-body">
+        The inspector clicks "Connect Phone Camera" on the laptop dashboard. A dynamic QR code pops up with an ephemeral session token 
+        (e.g., <code>/mobile?session=934b5861d4</code>). The inspector scans it with their phone camera. No mobile app download is needed.
+        The phone web app allows capturing multiple angles (Front, Back, Cap) and uploads them to the server.
+        <div class="analogy-box">
+          <span class="analogy-label">Plain English Analogy:</span> 
+          Think of the REST API like a waiter in a restaurant. When you scan the QR code, the laptop creates a private mailbox with a secret key. 
+          Your phone drops photos into that mailbox, and the laptop checks the mailbox every second until the photos arrive.
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step-card">
+      <div class="step-header">
+        <span class="step-badge">STEP 2</span>
+        <div class="step-heading">Glare Attenuation & Adaptive Contrast (OpenCV + CLAHE)</div>
+      </div>
+      <div class="step-body">
+        Real-world FMCG packaging (chips bags, glossy pouches, shiny bottles) acts like a mirror under store lighting, creating bright 
+        white specular glare spots that blind standard OCR engines. We apply <b>CLAHE (Contrast Limited Adaptive Histogram Equalization)</b> 
+        and glare attenuation before text detection.
+        <div class="analogy-box">
+          <span class="analogy-label">Plain English Analogy:</span> 
+          It acts like polarized sunglasses for the AI. It cuts through the blinding light reflection on shiny plastic foil so you can clearly read faint, washed-out printing underneath.
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step-card">
+      <div class="step-header">
+        <span class="step-badge">STEP 3</span>
+        <div class="step-heading">Spatial Text Detection & Recognition (RapidOCR / PaddleOCR ONNX)</div>
+      </div>
+      <div class="step-body">
+        The preprocessed image is processed by a deep neural network model packed via ONNX runtime. It detects every text string and records 
+        its exact 4-corner bounding box coordinates (X, Y, Width, Height) along with a probability confidence score (e.g. 0.98).
+        <div class="analogy-box">
+          <span class="analogy-label">Plain English Analogy:</span> 
+          A compressed artificial brain that has learned what English letters look like. Because it runs on ONNX, it takes less than 1 second 
+          on a normal laptop CPU without needing an expensive gaming graphics card (GPU). The bounding boxes are like putting highlighter boxes over every word.
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step-card">
+      <div class="step-header">
+        <span class="step-badge">STEP 4</span>
+        <div class="step-heading">Physical Millimeter Calibration & Rule 7 PDP Calculations</div>
+      </div>
+      <div class="step-body">
+        Cameras only record digital pixels, but Indian law specifies mandatory font heights in <b>millimeters (mm)</b>. 
+        We compute the physical scale factor (mm/pixel) using either the user-entered package dimensions or a reference object (like a ₹5 coin = 23mm). 
+        The system computes the <b>Principal Display Panel (PDP)</b> area (Rule 7: Area = W × H for boxes, or 40% × H × πD for cylindrical bottles) 
+        and looks up the statutory minimum numeral height tier (1.0mm, 2.0mm, 4.0mm, or 6.0mm).
+        <div class="analogy-box">
+          <span class="analogy-label">Plain English Analogy:</span> 
+          A digital ruler. By teaching the computer that "10 pixels on screen = 1 millimeter in real life", we measure the letters. 
+          If a letter is 1.8mm tall when the law requires ≥ 2.0mm, the system instantly flags it as an illegal violation!
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="step-card">
+      <div class="step-header">
+        <span class="step-badge">STEP 5</span>
+        <div class="step-heading">NLP Entity Parsing & Blacklist Filtering</div>
+      </div>
+      <div class="step-body">
+        OCR provides a chaotic list of 60 raw text blocks. The Entity Parser acts as a legal detective to extract the 8 mandatory declarations:
+        <ul style="margin: 0.5rem 0 0.5rem 1.5rem; font-size: 0.88rem;">
+          <li><b>Nutrition Blacklist:</b> Filters out "Sugars: 14g" or "Energy: 100kJ" so they aren't mistaken for net weight or price.</li>
+          <li><b>MRP vs USP:</b> Differentiates the total package price (<code>Rs. 30.00</code>) from per-unit rates (<code>Rs. 0.075 / ml</code>).</li>
+          <li><b>Dot-Matrix Dates:</b> Extracts stamped inkjet dates (<code>12/2026</code>) from bottle necks/caps even without "Mfg Date:" labels.</li>
+          <li><b>FSSAI Disambiguation:</b> Distinguishes 14-digit FSSAI license numbers from telephone consumer care helplines.</li>
+          <li><b>Address & PIN Code:</b> Extracts factory address and verifies the mandatory 6-digit Indian PIN code.</li>
+        </ul>
+        <div class="analogy-box">
+          <span class="analogy-label">Plain English Analogy:</span> 
+          Finding the needles in the haystack. The OCR reads everything on the box; the parser figures out which text is the price, which is the factory, and which is just marketing fluff.
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 6 -->
+    <div class="step-card">
+      <div class="step-header">
+        <span class="step-badge">STEP 6</span>
+        <div class="step-heading">Multi-Angle 3D Product Aggregation</div>
+      </div>
+      <div class="step-body">
+        Real packaged goods are 3-dimensional. For example, on a cold drink bottle: brand is on the front label, factory is on the back panel, 
+        and price/batch/date is stamped on the neck. Our multi-angle aggregator tags each extraction with its origin (e.g. <code>source_angle: "Angle 2 (Back)"</code>) 
+        and merges them into one complete statutory product profile.
+        <div class="analogy-box">
+          <span class="analogy-label">Plain English Analogy:</span> 
+          A 3D packaging jigsaw puzzle. It stitches multiple photos together into one unified brain so declarations on any side are credited to the product.
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 7 -->
+    <div class="step-card">
+      <div class="step-header">
+        <span class="step-badge">STEP 7</span>
+        <div class="step-heading">Decoupled Statutory Rulebook & Penalty Engine (Sec 36(1))</div>
+      </div>
+      <div class="step-body">
+        The assembled declarations are evaluated against <code>legal_metrology_2011.json</code>. 
+        Violations are mapped to statutory legal fines under Section 36(1) of the Legal Metrology Act, 2009 (₹25,000 for 1st offence, 
+        ₹50,000 for 2nd offence, and up to ₹1,00,000 or 1 year imprisonment for subsequent offences).
+        <div class="analogy-box">
+          <span class="analogy-label">Plain English Analogy:</span> 
+          A living digital legal code. If Parliament updates a rule or raises fines tomorrow, administrators can edit the JSON file directly in the browser with live hot-reloading — zero lines of Python code need to be modified!
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 8 -->
+    <div class="step-card">
+      <div class="step-header">
+        <span class="step-badge">STEP 8</span>
+        <div class="step-heading">Court-Admissible PDF Certificate (SHA-256 Hashing)</div>
+      </div>
+      <div class="step-body">
+        Results render live on the HTML5 spatial canvas with interactive angle switcher tabs and color-coded bounding boxes. 
+        In the background, ReportLab compiles an official, signed PDF Compliance Audit Certificate complete with a 
+        <b>SHA-256 cryptographic hash</b> of the raw packaging image.
+        <div class="analogy-box">
+          <span class="analogy-label">Plain English Analogy:</span> 
+          A tamper-proof digital fingerprint. Under Section 65B of the Indian Evidence Act, digital evidence must be authentic. 
+          If someone edits the photo by even 1 pixel in Photoshop, the hash breaks. This proves the audit certificate is 100% genuine in a court of law.
+        </div>
+      </div>
+    </div>
+
+    <h2>⚖️ 3. The 8 Mandatory Declarations at a Glance</h2>
+    <table class="styled-table">
+      <thead>
+        <tr>
+          <th>Statutory Clause</th>
+          <th>What It Means</th>
+          <th>What SYNX Checks & Flags</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="rule-tag">Rule 6(1)(a)</span></td>
+          <td>Manufacturer Details</td>
+          <td>Extracts business name, complete address, and verifies 6-digit postal PIN code.</td>
+        </tr>
+        <tr>
+          <td><span class="rule-tag">Rule 6(1)(b)</span></td>
+          <td>Commodity Name</td>
+          <td>Identifies genuine product title; filters out marketing slogans and process text.</td>
+        </tr>
+        <tr>
+          <td><span class="rule-tag">Rule 6(1)(c)</span></td>
+          <td>Net Quantity</td>
+          <td>Enforces SI metric units (g, ml, kg); penalizes non-standard symbols (gms, kgs).</td>
+        </tr>
+        <tr>
+          <td><span class="rule-tag">Rule 6(1)(d)</span></td>
+          <td>Packing Date</td>
+          <td>Extracts MM/YYYY or DD/MM/YYYY dates, including faint dot-matrix cap stamps.</td>
+        </tr>
+        <tr>
+          <td><span class="rule-tag">Rule 6(1)(e)</span></td>
+          <td>MRP & USP</td>
+          <td>Extracts total retail price (Rs. 30.00) and separates Unit Sale Price (Rs. 0.075/ml).</td>
+        </tr>
+        <tr>
+          <td><span class="rule-tag">Rule 6(1)(f)</span></td>
+          <td>Customer Care</td>
+          <td>Extracts phone helpline and email; rejects fake 14-digit FSSAI license numbers.</td>
+        </tr>
+        <tr>
+          <td><span class="rule-tag">Rule 6(10)</span></td>
+          <td>Country of Origin</td>
+          <td>Verifies explicit declaration (Made in India) or manufacturer postal origin.</td>
+        </tr>
+        <tr>
+          <td><span class="rule-tag">Rule 7 Tiers</span></td>
+          <td>Font Height</td>
+          <td>Calculates PDP area and verifies measured text height in millimeters.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="footer">
+      <b>SYNX Compliance System</b> • Smart India Hackathon 2026 (Problem Statement 26034)<br>
+      To run the live workstation: Double-click <code>start.bat</code> in the project directory.
+    </div>
+
+  </div>
+
+</body>
+</html>

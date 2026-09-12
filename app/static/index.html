@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SYNX - Legal Metrology Compliance Inspection Workstation | SIH 2026</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="brand-section">
+      <div class="logo-badge">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="m9 12 2 2 4-4"/>
+        </svg>
+        SYNX
+      </div>
+      <div>
+        <div class="brand-title">
+          Legal Metrology Compliance Inspector
+          <span class="header-tag">PS #26034</span>
+        </div>
+        <div class="brand-subtitle">Automated Packaged Commodities Rules, 2011 Verification Engine</div>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn btn-secondary theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle Light / Dark Theme">
+        <svg id="themeIconSun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/>
+          <line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <svg id="themeIconMoon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+        <span id="themeText">Theme</span>
+      </button>
+      <button class="btn btn-primary" onclick="openMobileConnectModal()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
+          <path d="M12 18h.01"/>
+        </svg>
+        Connect Mobile Scanner
+      </button>
+      <button class="btn btn-secondary" onclick="openWebcamModal()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+          <circle cx="12" cy="13" r="3"/>
+        </svg>
+        Webcam
+      </button>
+      <button class="btn btn-secondary" onclick="openRulebookModal()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+        Rulebook
+      </button>
+      <button class="btn btn-success" id="btnDownloadPdf" style="display: none;" onclick="downloadCurrentAuditPdf()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" x2="12" y1="15" y2="3"/>
+        </svg>
+        Download PDF Audit
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Workstation Layout -->
+  <main class="main-container">
+
+    <!-- Left Column: Input, Calibration & Visual Inspector -->
+    <div class="left-pane">
+      
+      <!-- 1. Image Ingestion Card -->
+      <div class="card">
+        <div class="card-title">
+          <div class="card-title-left">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+              <circle cx="9" cy="9" r="2"/>
+              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+            </svg>
+            <span>1. Ingest Packaged Commodity</span>
+          </div>
+          <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">Multi-Angle Supported</span>
+        </div>
+
+        <!-- Upload Dropzone -->
+        <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+          <div class="upload-icon-container">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
+              <path d="M12 12v9"/>
+              <path d="m16 16-4-4-4 4"/>
+            </svg>
+          </div>
+          <div class="upload-title">Drop Commodity Images or Click to Browse</div>
+          <div class="upload-subtitle">
+            Upload <b>Front, Back, Sides, and Cap/Flap</b> together for unified 100% compliance verification
+          </div>
+          <input type="file" id="fileInput" accept="image/*" multiple style="display: none;" onchange="handleFileSelect(event)">
+        </div>
+
+        <!-- Pre-loaded Benchmark Test Suite (Slide 10) -->
+        <div style="margin-top: 1rem;">
+          <div class="benchmark-section-title">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 2v7.31"/>
+              <path d="M14 9.3V1.99"/>
+              <path d="M8.5 2h7"/>
+              <path d="M14 9.3a6.5 6.5 0 1 1-4 0"/>
+              <path d="M5.52 16h12.96"/>
+            </svg>
+            Ground-Truth Benchmark Edge Cases
+          </div>
+          <div class="benchmark-grid" id="sampleGrid">
+            <div style="font-size: 0.72rem; color: var(--text-muted); padding: 0.5rem 0;">Loading benchmark samples...</div>
+          </div>
+        </div>
+
+        <!-- Physical Dimension Calibration Panel -->
+        <div style="margin-top: 1rem; border-top: 1px solid var(--border-subtle); padding-top: 0.75rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+            <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; font-weight: 600; color: var(--text-primary);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              <span>Physical Metric Calibration (Rule 7 Verification)</span>
+            </div>
+            <select id="calibMode" class="form-control" style="width: auto; padding: 2px 6px; font-size: 0.74rem;" onchange="toggleCalibMode()">
+              <option value="dimensions">Package Dimensions (W × H)</option>
+              <option value="reference_object">Reference Object (₹5 Coin / Card)</option>
+            </select>
+          </div>
+
+          <!-- Dimension Inputs -->
+          <div class="form-row" id="dimFields">
+            <div class="form-group">
+              <label>Package Type</label>
+              <select id="pkgType" class="form-control">
+                <option value="rectangular">Rectangular Box / Pouch</option>
+                <option value="cylindrical">Cylindrical Can / Bottle</option>
+                <option value="other">Other Shaped Package</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Width (mm)</label>
+              <input type="number" id="pkgWidth" class="form-control" value="120" step="1">
+            </div>
+            <div class="form-group">
+              <label>Height (mm)</label>
+              <input type="number" id="pkgHeight" class="form-control" value="180" step="1">
+            </div>
+            <div class="form-group">
+              <label>Depth (mm)</label>
+              <input type="number" id="pkgDepth" class="form-control" value="40" step="1">
+            </div>
+          </div>
+
+          <!-- Reference Object Inputs (Hidden by default) -->
+          <div class="form-row" id="refFields" style="display: none;">
+            <div class="form-group" style="grid-column: span 2;">
+              <label>Reference Object</label>
+              <select id="refObjectId" class="form-control">
+                <option value="coin_5rs">₹5 Coin (Standard 23 mm diameter)</option>
+                <option value="coin_1rs">₹1 Coin (21.93 mm diameter)</option>
+                <option value="credit_card">Standard ID / Credit Card (85.6 mm width)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Measured Ref Pixels</label>
+              <input type="number" id="refPixelSize" class="form-control" value="65" placeholder="px in image">
+            </div>
+          </div>
+
+          <div style="margin-top: 0.85rem;">
+            <button class="btn btn-primary btn-action-hero" id="btnRunAudit" onclick="runAudit()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+              Execute Statutory Compliance Audit
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 2. Interactive Spatial Canvas Viewport -->
+      <div class="card" style="padding: 0.85rem;">
+        <div class="card-title" style="margin-bottom: 0.5rem;">
+          <div class="card-title-left">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="22" x2="18" y1="12" y2="12"/>
+              <line x1="6" x2="2" y1="12" y2="12"/>
+              <line x1="12" x2="12" y1="6" y2="2"/>
+              <line x1="12" x2="12" y1="22" y2="18"/>
+            </svg>
+            <span>2. Optical Spatial Text & Bounding Inspector</span>
+          </div>
+          <span id="canvasStats" style="font-size: 0.72rem; color: var(--text-cyan); font-family: var(--font-mono);">Ready</span>
+        </div>
+
+        <!-- Multi-Angle Switcher Tabs -->
+        <div id="angleTabsContainer" style="display: none; gap: 0.4rem; margin-bottom: 0.6rem; overflow-x: auto; padding-bottom: 2px;"></div>
+
+        <div class="canvas-container" id="canvasContainer">
+          <canvas id="labelCanvas"></canvas>
+          <div id="loadingOverlay" style="display: none; position: absolute; text-align: center; color: #fff;">
+            <div class="spinner"></div>
+            <div style="margin-top: 8px; font-size: 0.82rem; font-weight: 600;">Processing OCR & Statutory Rules Engine...</div>
+          </div>
+          <div class="canvas-toolbar">
+            <span><span class="legend-dot dot-pass"></span> Compliant</span>
+            <span><span class="legend-dot dot-fail"></span> Violation</span>
+            <span><span class="legend-dot dot-warn"></span> Warning</span>
+            <span><span class="legend-dot dot-other"></span> Detected Block</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Right Column: Statutory Audit Ledger -->
+    <div class="right-pane">
+
+      <!-- Executive Verdict Banner -->
+      <div class="verdict-banner verdict-CONDITIONAL" id="verdictBanner">
+        <div>
+          <div class="score-label">Statutory Compliance Status</div>
+          <div style="font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em;" id="verdictText">AWAITING SCAN</div>
+          <div class="stat-pills" id="statPills">
+            <span class="stat-pill pill-pass" id="cntPass">0 Passed</span>
+            <span class="stat-pill pill-warn" id="cntWarn">0 Warnings</span>
+            <span class="stat-pill pill-fail" id="cntFail">0 Violations</span>
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div class="score-label">Compliance Index</div>
+          <div class="score-badge" id="scoreValue">--%</div>
+        </div>
+      </div>
+
+      <!-- PDP & Dimensional Compliance Card -->
+      <div class="card">
+        <div class="card-title">
+          <div class="card-title-left">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/>
+              <path d="m14.5 12.5 2-2"/>
+              <path d="m11.5 9.5 2-2"/>
+              <path d="m8.5 6.5 2-2"/>
+              <path d="m17.5 15.5 2-2"/>
+            </svg>
+            <span>Principal Display Panel (Rule 7 Metrics)</span>
+          </div>
+          <span style="font-size: 0.7rem; font-family: var(--font-mono); color: var(--text-cyan);" id="pdpRefClause">Rule 7(1) Table 1</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.65rem; text-align: center;">
+          <div style="background: var(--bg-subtle); padding: 0.65rem 0.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <div style="font-size: 0.68rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 500;">Calculated PDP Area</div>
+            <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary); font-family: var(--font-mono); margin: 2px 0;" id="pdpAreaVal">-- cm²</div>
+            <div style="font-size: 0.64rem; color: var(--text-muted); font-family: var(--font-mono);" id="pdpFormula">A = W × H</div>
+          </div>
+          <div style="background: var(--bg-subtle); padding: 0.65rem 0.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <div style="font-size: 0.68rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 500;">Rule 7 Min Font Height</div>
+            <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-amber); font-family: var(--font-mono); margin: 2px 0;" id="pdpMinFontVal">≥ -- mm</div>
+            <div style="font-size: 0.64rem; color: var(--text-muted);">Statutory Threshold</div>
+          </div>
+          <div style="background: var(--bg-subtle); padding: 0.65rem 0.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <div style="font-size: 0.68rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 500;">Pixel Scale Factor</div>
+            <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-cyan); font-family: var(--font-mono); margin: 2px 0;" id="scaleFactorVal">-- mm/px</div>
+            <div style="font-size: 0.64rem; color: var(--text-muted);">Optical Calibration</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mandatory Declarations Matrix (Rule 6 Breakdown) -->
+      <div class="card">
+        <div class="card-title">
+          <div class="card-title-left">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+              <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+              <path d="m9 14 2 2 4-4"/>
+            </svg>
+            <span>Mandatory Declarations Matrix</span>
+          </div>
+          <span style="font-size: 0.68rem; color: var(--text-muted); font-family: var(--font-mono);">Rule 6 Statutory Audit</span>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Declaration</th>
+                <th>Extracted Content</th>
+                <th>Source Panel / Angle</th>
+                <th>Font Height</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="declarationsTableBody">
+              <tr>
+                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                  Upload label image(s) or select a benchmark sample above to execute verification.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Statutory Rule Evaluation & Penalty Assessment Table -->
+      <div class="card">
+        <div class="card-title">
+          <div class="card-title-left">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/>
+              <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/>
+              <path d="M7 21h10"/>
+              <path d="M12 3v18"/>
+              <path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>
+            </svg>
+            <span>Statutory Rule Evaluations & Penalties</span>
+          </div>
+          <span style="font-size: 0.68rem; color: var(--text-muted); font-family: var(--font-mono);">Act 2009 Sec 36(1)</span>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Clause</th>
+                <th>Requirement</th>
+                <th>Findings & Technical Rationale</th>
+                <th>Verdict</th>
+              </tr>
+            </thead>
+            <tbody id="rulesTableBody">
+              <tr>
+                <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                  No active audit ledger.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Digital Rulebook JSON Editor Modal -->
+  <div class="modal-backdrop" id="rulebookModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          Digital Legal Metrology Rulebook (Live JSON)
+        </h3>
+        <button class="btn btn-secondary" onclick="closeRulebookModal()" style="height: 28px; width: 28px; padding: 0;">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.74rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+          Statutory rules are decoupled into versioned JSON. Government circular amendments can be updated here live with instant hot-reloading.
+        </p>
+        <textarea id="rulebookJsonEditor" class="json-textarea"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeRulebookModal()">Cancel</button>
+        <button class="btn btn-success" onclick="saveRulebook()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+            <polyline points="17 21 17 13 7 13 7 21"/>
+            <polyline points="7 3 7 8 15 8"/>
+          </svg>
+          Save & Hot-Reload Rules
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Phone Connect QR Modal -->
+  <div class="modal-backdrop" id="mobileConnectModal">
+    <div class="modal-content" style="max-width: 480px; text-align: center;">
+      <div class="modal-header">
+        <h3>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
+            <path d="M12 18h.01"/>
+          </svg>
+          Connect Mobile Scanner (Field Mode)
+        </h3>
+        <button class="btn btn-secondary" onclick="closeMobileConnectModal()" style="height: 28px; width: 28px; padding: 0;">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 1.5rem;">
+        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem;">
+          Scan this QR code with your mobile camera or open the link below. Ensure phone & PC are on the same local network:
+        </p>
+        <div id="mobileQrContainer" style="display: flex; justify-content: center; padding: 12px; background: #ffffff; border-radius: var(--radius-md); width: fit-content; margin: 0 auto 1rem auto; box-shadow: var(--shadow-sm);">
+          <div id="mobileQrCode"></div>
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <a id="mobileDirectLink" href="#" target="_blank" style="color: var(--text-cyan); font-size: 0.8rem; word-break: break-all; font-family: var(--font-mono);">
+            Loading link...
+          </a>
+        </div>
+        <div id="mobileSyncStatus" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.8rem; color: var(--text-amber); font-weight: 500;">
+          <span class="spinner"></span> Waiting for photo transmission from mobile device...
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeMobileConnectModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Webcam Capture Modal -->
+  <div class="modal-backdrop" id="webcamModal">
+    <div class="modal-content" style="max-width: 580px; text-align: center;">
+      <div class="modal-header">
+        <h3>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+            <circle cx="12" cy="13" r="3"/>
+          </svg>
+          Webcam Live Optical Capture
+        </h3>
+        <button class="btn btn-secondary" onclick="closeWebcamModal()" style="height: 28px; width: 28px; padding: 0;">✕</button>
+      </div>
+      <div class="modal-body">
+        <video id="webcamVideo" autoplay playsinline style="width: 100%; height: 340px; object-fit: cover; border-radius: var(--radius-md); background: #000; border: 1px solid var(--border-color);"></video>
+        <canvas id="webcamSnapCanvas" style="display: none;"></canvas>
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button class="btn btn-secondary" onclick="closeWebcamModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="captureWebcamPhoto()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          Capture Frame & Verify
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Canvas Tooltip -->
+  <div class="floating-tooltip" id="canvasTooltip"></div>
+
+  <!-- Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
