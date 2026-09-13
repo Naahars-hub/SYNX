@@ -1,5 +1,6 @@
 import os
 import io
+import re
 import json
 import base64
 from pathlib import Path
@@ -71,7 +72,7 @@ def _prepare_image_base64(image_input: Union[str, Path, bytes, Image.Image], max
 def extract_commodity_with_gemini(
     image_input: Union[str, Path, bytes, Image.Image],
     ocr_blocks: Optional[List[OCRTextBlock]] = None,
-    timeout_seconds: float = 6.0
+    timeout_seconds: float = 10.0
 ) -> Optional[Dict[str, Any]]:
     """
     Calls Gemini 1.5 Flash to extract the official statutory generic commodity name
@@ -122,17 +123,34 @@ def extract_commodity_with_gemini(
             "generationConfig": {
                 "response_mime_type": "application/json",
                 "temperature": 0.1,
-                "max_output_tokens": 512
+                "max_output_tokens": 2048
             }
         }
 
-        url = GEMINI_API_URL_TEMPLATE.format(model=GEMINI_MODEL, key=GEMINI_API_KEY)
+        # Prioritized candidate models with automatic failover on 404 (deprecated) or 503 (high demand)
+        candidate_models = []
+        for m in [GEMINI_MODEL, "gemini-3.6-flash", "gemini-flash-latest"]:
+            if m and m not in candidate_models:
+                candidate_models.append(m)
 
+        resp = None
+        used_model = GEMINI_MODEL
         with httpx.Client(timeout=timeout_seconds) as client:
-            resp = client.post(url, json=payload)
+            for model_name in candidate_models:
+                url = GEMINI_API_URL_TEMPLATE.format(model=model_name, key=GEMINI_API_KEY)
+                r = client.post(url, json=payload)
+                if r.status_code == 200:
+                    resp = r
+                    used_model = model_name
+                    break
+                elif r.status_code in (404, 503):
+                    print(f"[GeminiExtractor] Model '{model_name}' returned HTTP {r.status_code}. Failing over to next model...")
+                    continue
+                else:
+                    print(f"[GeminiExtractor] API returned HTTP {r.status_code}: {r.text[:200]}")
+                    return None
 
-        if resp.status_code != 200:
-            print(f"[GeminiExtractor] API returned HTTP {resp.status_code}: {resp.text[:200]}")
+        if resp is None or resp.status_code != 200:
             return None
 
         data = resp.json()
@@ -146,6 +164,19 @@ def extract_commodity_with_gemini(
             return None
 
         raw_json_str = parts[0].get("text", "").strip()
+        if raw_json_str.startswith("```"):
+            lines = raw_json_str.splitlines()
+            if lines and lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines and lines[-1].startswith("```"):
+                lines = lines[:-1]
+            raw_json_str = "\n".join(lines).strip()
+
+        # Extract innermost JSON object if wrapped in conversational explanation
+        json_match = re.search(r'(\{[\s\S]*\})', raw_json_str)
+        if json_match:
+            raw_json_str = json_match.group(1)
+
         parsed = json.loads(raw_json_str)
 
         commodity = (parsed.get("commodity_name") or "").strip()
@@ -162,12 +193,13 @@ def extract_commodity_with_gemini(
             "brand_name": brand,
             "variant": variant,
             "confidence": conf,
-            "source": f"{GEMINI_MODEL} multimodal"
+            "source": f"{used_model} multimodal"
         }
 
     except httpx.TimeoutException:
         print("[GeminiExtractor] Request timed out. Falling back to local visual-salience parser.")
         return None
     except Exception as e:
-        print(f"[GeminiExtractor] Warning during extraction: {e}. Falling back to local parser.")
+        raw_snippet = repr(raw_json_str) if 'raw_json_str' in locals() else 'N/A'
+        print(f"[GeminiExtractor] Warning during extraction: {e}. (raw_text={raw_snippet}). Falling back to local parser.")
         return None
