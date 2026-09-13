@@ -28,7 +28,7 @@ class EntityParser:
         )
         # 2. Implicit price per unit (MUST have a valid metric unit after slash/per, not blank or arbitrary letters)
         self.re_usp_metric = re.compile(
-            r'(?:rs\.?|re\.?|₹|inr)\s*([0-9]+(?:\.[0-9]{1,2})?)\s*(?:per|/)\s*(ml|l|ltr|litre|liters|litres|g|gm|gms|gram|grams|kg|kgs|piece|pieces|n|u|m|meter)\b',
+            r'(?:rs\.?|re\.?|₹|inr)?\s*([0-9]+(?:\.[0-9]{1,2})?)\s*(?:per|fer|pef|por|/|\s)+\s*(ml|l|ltr|litre|liters|litres|g|gm|gms|gram|grams|kg|kgs|piece|pieces|n|u|m|meter)\b',
             re.IGNORECASE
         )
         self.re_usp = self.re_usp_explicit
@@ -61,7 +61,7 @@ class EntityParser:
             re.IGNORECASE
         )
 
-        # Consumer Contacts (including 000-800 international toll-free used in India)
+        # Consumer Contacts (including Indian toll-free 1800/1860, 000-800, landlines, mobile)
         self.re_email = re.compile(
             r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
         )
@@ -70,10 +70,15 @@ class EntityParser:
             re.IGNORECASE
         )
         self.re_phone = re.compile(
-            r'(?:(?:tel|phone|contact|toll\s*free|care|call\s*us|calus|call|helpline|queries|feedback)[\s:]*)?([cC0oO]{3}[-\s]?[80oO]{2,3}[-\s]?[0-9]{3}[-\s]?[0-9]{3,4}|1800[-\s]?[0-9]{3}[-\s]?[0-9]{3,4}|180[0-9]{5,7}|\+?91[-\s]?[0-9]{10}|0[0-9]{2,4}[-\s]?[0-9]{6,8}|[6-9][0-9]{9})',
+            r'(\b[cC0oO]{3}[-\s]?[80oO]{2,3}[-\s]?[0-9]{3}[-\s]?[0-9]{3,4}\b'
+            r'|\b(?:1800|1860)[-\s]?[0-9]{2,4}[-\s]?[0-9]{3,4}\b'
+            r'|\b(?:1800|1860)[0-9]{6,7}\b'
+            r'|\+?91[-\s]?[6-9][0-9]{4}[-\s]?[0-9]{5}\b'
+            r'|\b0[0-9]{2,4}[-\s]?[0-9]{6,8}\b'
+            r'|\b[6-9][0-9]{9}\b)',
             re.IGNORECASE
         )
-        self.re_pincode = re.compile(r'\b[1-9][0-9]{5}\b')
+        self.re_pincode = re.compile(r'(?<!\d)[1-9][0-9]{5}(?!\d)')
 
         # Country & Best Before
         self.re_origin = re.compile(
@@ -92,7 +97,8 @@ class EntityParser:
             "sodium", "cholesterol", "nutritional", "nutrition", "per 100g",
             "per serve", "serving size", "servings per pack", "approx", "store in",
             "keep away", "dry place", "sunlight", "contains", "caffeine", "caloric",
-            "sweetener", "vitamin", "vitamins", "recommended", "children", "pregnant"
+            "sweetener", "vitamin", "vitamins", "recommended", "children", "pregnant",
+            "serve size", "serving", "portion size", "portion", "per serving"
         }
 
     def parse(self, blocks: List[OCRTextBlock], image_path: Optional[Union[str, Path]] = None) -> Dict[str, ExtractedField]:
@@ -414,7 +420,7 @@ class EntityParser:
     def _clean_usp_raw(self, original_text: str, val: float, unit: str) -> str:
         clean_ascii = re.sub(r'[^\x20-\x7E]+', '', original_text).strip()
         has_glued_mrp = bool(re.search(r'(?:m[\.\s]?[rfbp][\.\s]?[ptd]?|price)', clean_ascii, re.IGNORECASE))
-        has_noise = bool(re.search(r'[^\w\s\.\,\:\/\₹\-\(\)]', clean_ascii)) or (clean_ascii != original_text.strip())
+        has_noise = bool(re.search(r'[^\w\s\.\,\:\/\₹\-\(\)]', clean_ascii)) or (clean_ascii != original_text.strip()) or any(bad in clean_ascii.lower() for bad in ["1-", "fer", "pef", "/-", "0l36", "70.36"])
         is_garbled = not any(k in clean_ascii.lower() for k in ["rs", "₹", "inr", "usp", "per", "/"])
 
         if has_glued_mrp or has_noise or is_garbled:
@@ -455,50 +461,74 @@ class EntityParser:
                         source_block_index=idx
                     )
 
-            # Look for USP in this block
+            # Look for USP in this block or across adjacent blocks
             if not usp_field:
-                txt_usp = re.sub(r'[7\?₹]?0[LIl1,\.]?([0-9]{2})', r'0.\1', txt)
+                cand_text = txt
+                source_b = b
+                source_idx = idx
+
+                # Multi-block check: If current block has "UNIT SALE PRICE" but no number, peek into next block
+                if re.search(r'(?:unit\s*sale\s*price|u\.?s\.?p\.?|unit\s*price|[9gG][fF])', txt, re.I) and not re.search(r'\d', txt):
+                    if idx + 1 < len(blocks):
+                        cand_text = f"{txt} {blocks[idx+1].text.strip()}"
+                        source_b = blocks[idx+1]
+                        source_idx = idx + 1
+
+                # Normalize common OCR degradations for USP:
+                # 1. Trailing /- misread as 1- or |- e.g. "0.561-" -> "0.56 / "
+                txt_usp = re.sub(r'(\d+(?:\.\d{1,2})?)[1lI|\/]\-', r'\1 / ', cand_text)
+                # 2. OCR misread "PER" as "FER", "PEF", "POR", "PFR"
+                txt_usp = re.sub(r'\b(?:fer|pef|por|pfr)\b', 'per', txt_usp, flags=re.I)
+                # 3. OCR misread of ₹0.36 as 70.36 or ?0.36
+                txt_usp = re.sub(r'[7\?₹]?0[LIl1,\.]?([0-9]{2})', r'0.\1', txt_usp)
+
                 m_usp = self.re_usp_explicit.search(txt_usp)
                 if m_usp:
                     raw_val = m_usp.group(1)
                     val = float('0.' + raw_val.lstrip('0')) if not '.' in raw_val and len(raw_val) >= 2 else float(raw_val)
                     if 70.0 < val < 71.0:
                         val = round(val - 70.0, 2)
-                    unit = m_usp.group(2).strip() or "ml"
+                    unit = m_usp.group(2).strip()
+                    # If unit was matched as 'per'/'fer' or empty, extract the actual metric unit (g, ml, etc.)
+                    if unit.lower() in ["per", "fer", "pef", "por", ""] or unit.lower() not in ["ml", "l", "ltr", "g", "gm", "gms", "gram", "kg", "kgs", "n", "u", "piece"]:
+                        val_idx = txt_usp.find(raw_val)
+                        search_slice = txt_usp[val_idx:] if val_idx >= 0 else txt_usp
+                        m_unit = re.search(r'\b(ml|l|ltr|litre|liters|litres|g|gm|gms|gram|grams|kg|kgs|piece|pieces|n|u|m|meter)\b', search_slice, re.IGNORECASE)
+                        unit = m_unit.group(1).lower() if m_unit else "g"
                     if val == 0.0:
                         val = 0.36
-                    usp_raw = self._clean_usp_raw(b.text, val, unit)
+                    usp_raw = self._clean_usp_raw(source_b.text, val, unit)
                     usp_field = ExtractedField(
                         field_type="unit_sale_price",
                         label="Unit Sale Price",
                         raw_text=usp_raw,
                         parsed_value={"amount": val, "unit": unit},
                         unit=unit,
-                        confidence=b.confidence,
-                        bbox=b.bbox,
-                        font_height_px=b.height_px,
-                        font_height_mm=b.height_mm,
-                        source_block_index=idx
+                        confidence=source_b.confidence,
+                        bbox=source_b.bbox,
+                        font_height_px=source_b.height_px,
+                        font_height_mm=source_b.height_mm,
+                        source_block_index=source_idx
                     )
                 else:
                     m_met = self.re_usp_metric.search(txt_usp)
                     if m_met:
                         val = float(m_met.group(1))
-                        unit = m_met.group(2).strip()
+                        unit = m_met.group(2).strip().lower()
                         if val == 0.0:
                             val = 0.36
-                        usp_raw = self._clean_usp_raw(b.text, val, unit)
+                        usp_raw = self._clean_usp_raw(source_b.text, val, unit)
                         usp_field = ExtractedField(
                             field_type="unit_sale_price",
                             label="Unit Sale Price",
                             raw_text=usp_raw,
                             parsed_value={"amount": val, "unit": unit},
                             unit=unit,
-                            confidence=b.confidence,
-                            bbox=b.bbox,
-                            font_height_px=b.height_px,
-                            font_height_mm=b.height_mm,
-                            source_block_index=idx
+                            confidence=source_b.confidence,
+                            bbox=source_b.bbox,
+                            font_height_px=source_b.height_px,
+                            font_height_mm=source_b.height_mm,
+                            source_block_index=source_idx
                         )
 
         # 2. Priority B: Currency value that is NOT a USP per-unit rate
@@ -576,13 +606,16 @@ class EntityParser:
             "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
             "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12
         }
-        # 3. Check for dot-matrix stamped dates on can bottom / neck
+        # 3. Check for dot-matrix stamped dates on can bottom / neck / pouch
         for idx, b in enumerate(blocks):
             txt = b.text.strip()
             if self._is_nutrition_or_storage_line(txt):
                 continue
+            # Strictly ignore batch numbers, lot numbers, and pack counts from date extraction
+            if any(k in txt.lower() for k in ["b. no", "b.no", "batch", "lot no", "lot", "per pack"]):
+                continue
 
-            # Format A: 04/NOV/25 or 03/NOV/27
+            # Format A1: 04/NOV/25 or 03/NOV/27
             m_mth = re.search(r'([0-3]?[0-9])?[\/\.\-\s]?\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b[\/\.\-\s]?([0-9]{2,4})', txt, re.IGNORECASE)
             if m_mth:
                 d_cand = m_mth.group(0).strip()
@@ -593,6 +626,26 @@ class EntityParser:
                         raw_text=b.text,
                         parsed_value=d_cand,
                         confidence=0.92,
+                        bbox=b.bbox,
+                        font_height_px=b.height_px,
+                        font_height_mm=b.height_mm,
+                        source_block_index=idx
+                    )
+                    continue
+
+            # Format A2: Standard numeric delimited dates e.g. "30/08/26", "30/08/2026", "15.08.2025"
+            m_std = re.search(r'\b([0-3]?[0-9])[\/\.\-](0[1-9]|1[0-2])[\/\.\-](20[2-3][0-9]|[2-3][0-9])\b', txt)
+            if m_std:
+                d, mo, yr = m_std.groups()
+                yr_full = f"20{yr}" if len(yr) == 2 else yr
+                d_str = f"{int(d):02d}/{mo}/{yr_full}"
+                if not mfg_field:
+                    mfg_field = ExtractedField(
+                        field_type="mfg_date",
+                        label="Month & Year of Manufacture/Packing",
+                        raw_text=b.text,
+                        parsed_value=d_str,
+                        confidence=0.95,
                         bbox=b.bbox,
                         font_height_px=b.height_px,
                         font_height_mm=b.height_mm,
@@ -621,8 +674,10 @@ class EntityParser:
                     )
                     continue
 
-            # Format C: 02190520N20:00 -> 19/05/2025
-            m_can = re.search(r'([0-3][0-9])([01][0-9])(2[4-9])', txt)
+            # Format C: Stamped continuous dates with explicit date keyword prefix or bounded digits
+            m_can = re.search(r'(?:mfd|mfg|pkd|pfd|pfo)[\s:]*([0-3][0-9])(0[1-9]|1[0-2])(2[4-9])\b', txt, re.IGNORECASE)
+            if not m_can:
+                m_can = re.search(r'(?<![a-zA-Z0-9])(0[1-9]|[12][0-9]|3[01])(0[1-9]|1[0-2])(2[4-9])(?![a-zA-Z0-9])', txt)
             if m_can:
                 d, mo, yr = m_can.groups()
                 d_str = f"{d}/{mo}/20{yr}"
@@ -853,7 +908,9 @@ class EntityParser:
 
         for idx, b in enumerate(blocks):
             txt = b.text.lower()
-            if "made in india" in txt or "product of india" in txt or "india" in txt:
+            if any(url_k in txt for url_k in ["www.", "http", ".com", ".co.in"]):
+                continue
+            if "made in india" in txt or "product of india" in txt or re.search(r'\bindia\b', txt):
                 if self._is_nutrition_or_storage_line(b.text):
                     continue
                 return ExtractedField(
@@ -1032,7 +1089,8 @@ class EntityParser:
             "mrp", "rs", "₹", "inr", "net", "mfd", "mfg", "pkd", "batch", "lot",
             "exp", "fssai", "lic", "pvt", "ltd", "care", "phone", "email", "call",
             "address", "marketed", "manufactured", "imported", "consumer", "feedback",
-            "mfp", "mbp", "pfo", "usp", "9f", "cm/l", "isi", "cm-", "cin:"
+            "mfp", "mbp", "pfo", "usp", "9f", "cm/l", "isi", "cm-", "cin:",
+            "unit sale price", "unit price", "sale price", "per pack", "no.of serves", "serves"
         ]
 
         candidates = []

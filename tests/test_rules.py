@@ -226,5 +226,44 @@ class TestLegalMetrologyRules(unittest.TestCase):
         self.assertNotIn("包", usp_fld.raw_text)
         self.assertNotIn("MRPT", usp_fld.raw_text)
 
+    def test_consumer_care_tollfree_and_multiblock_usp_extraction(self):
+        """Real-world packaged food OCR (e.g. Lay's Magic Masala) must properly extract phone, USP, and pincode."""
+        from app.extractor.parser import EntityParser
+        parser = EntityParser()
+
+        blocks = [
+            OCRTextBlock(text="UNIT SALE PRICE:", confidence=0.97, bbox=BoundingBox(x=10, y=10, width=100, height=20), height_px=18),
+            OCRTextBlock(text="Rs. 0.561- FER g", confidence=0.96, bbox=BoundingBox(x=10, y=35, width=100, height=20), height_px=18),
+            OCRTextBlock(text="PEPSICO INDIA HOLDINGS PVT.LTD", confidence=0.91, bbox=BoundingBox(x=10, y=60, width=200, height=20), height_px=18),
+            OCRTextBlock(text="GURUGRAM122002,HARYANA,INDIA", confidence=0.80, bbox=BoundingBox(x=10, y=85, width=200, height=20), height_px=18),
+            OCRTextBlock(text="OR CALL US AT 180022 4020", confidence=0.91, bbox=BoundingBox(x=10, y=110, width=200, height=20), height_px=18),
+            OCRTextBlock(text="CONSUMER.FEEDBACK@PEPSICO.COM", confidence=0.99, bbox=BoundingBox(x=10, y=135, width=200, height=20), height_px=18),
+            OCRTextBlock(text="30/08/26 & 2701127", confidence=0.91, bbox=BoundingBox(x=10, y=160, width=150, height=20), height_px=18),
+            OCRTextBlock(text="2.2/N43008280", confidence=0.93, bbox=BoundingBox(x=10, y=185, width=150, height=20), height_px=18),
+        ]
+
+        fields = parser.parse(blocks)
+
+        # 1. Unit Sale Price
+        self.assertIn("unit_sale_price", fields)
+        self.assertEqual(fields["unit_sale_price"].parsed_value["amount"], 0.56)
+        self.assertEqual(fields["unit_sale_price"].parsed_value["unit"], "g")
+        self.assertIn("0.56", fields["unit_sale_price"].raw_text)
+
+        # 2. Consumer Care
+        self.assertIn("consumer_care", fields)
+        self.assertEqual(fields["consumer_care"].parsed_value["phone"], "180022 4020")
+        self.assertIn("CONSUMER.FEEDBACK@PEPSICO.COM", fields["consumer_care"].parsed_value["email"])
+        self.assertTrue(fields["consumer_care"].parsed_value["has_both"])
+
+        # 3. Manufacturer PIN Code
+        self.assertIn("manufacturer", fields)
+        self.assertTrue(fields["manufacturer"].parsed_value["has_pincode"])
+
+        # 4. Mfg Date (Not batch number)
+        self.assertIn("mfg_date", fields)
+        self.assertEqual(fields["mfg_date"].parsed_value, "30/08/2026")
+
 if __name__ == "__main__":
     unittest.main()
+

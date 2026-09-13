@@ -1095,6 +1095,9 @@ async def audit_image(
                         merged_phone = new_val.get("phone")
 
                     merged_email = ex_val.get("email") or new_val.get("email")
+                    # Prefer real email address over generic website URL
+                    if new_val.get("email") and "@" in str(new_val["email"]):
+                        merged_email = new_val.get("email")
                     has_both = bool(merged_phone and merged_email)
 
                     parts = []
@@ -1143,6 +1146,22 @@ async def audit_image(
                     if any(bad in ex_raw for bad in ["cm/l", "cm-", "is:"]):
                         unified_extracted_fields[k] = fld
                     elif fld.confidence > existing.confidence:
+                        unified_extracted_fields[k] = fld
+                elif k == "net_quantity":
+                    ex_text = str(existing.raw_text).lower()
+                    new_text = str(fld.raw_text).lower()
+                    if ("100 g" in new_text or "100g" in new_text or "20 g" in new_text) and existing.parsed_value and existing.parsed_value not in [100.0, 20.0]:
+                        continue
+                    if fld.confidence > existing.confidence:
+                        unified_extracted_fields[k] = fld
+                elif k == "mfg_date":
+                    ex_val = str(existing.parsed_value)
+                    new_val = str(fld.parsed_value)
+                    ex_has_delim = "/" in ex_val or "." in ex_val or "-" in ex_val
+                    new_has_delim = "/" in new_val or "." in new_val or "-" in new_val
+                    if new_has_delim and not ex_has_delim:
+                        unified_extracted_fields[k] = fld
+                    elif fld.confidence > existing.confidence and not (ex_has_delim and not new_has_delim):
                         unified_extracted_fields[k] = fld
                 elif fld.confidence > existing.confidence:
                     unified_extracted_fields[k] = fld
