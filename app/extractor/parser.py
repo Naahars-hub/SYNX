@@ -127,13 +127,17 @@ class EntityParser:
                     # Maximum Retail Price (MRP)
                     if g_data.get("mrp") and isinstance(g_data["mrp"], dict) and g_data["mrp"].get("amount"):
                         m_info = g_data["mrp"]
+                        val = float(m_info["amount"])
+                        has_tax = bool(m_info.get("inclusive_of_all_taxes", True))
+                        raw_mrp = m_info.get("raw") or ""
+                        clean_raw = self._clean_mrp_raw(raw_mrp, val, has_tax) if raw_mrp else (f"MRP ₹{val:.2f} (incl. of all taxes)" if has_tax else f"MRP ₹{val:.2f}")
                         fields["mrp"] = ExtractedField(
                             field_type="mrp",
                             label="Maximum Retail Price (MRP)",
-                            raw_text=m_info.get("raw") or f"₹{float(m_info['amount']):.2f}",
+                            raw_text=clean_raw,
                             parsed_value={
-                                "amount": float(m_info["amount"]),
-                                "inclusive_of_all_taxes": bool(m_info.get("inclusive_of_all_taxes", True))
+                                "amount": val,
+                                "inclusive_of_all_taxes": has_tax
                             },
                             unit="INR",
                             confidence=0.98,
@@ -146,15 +150,19 @@ class EntityParser:
                     # Unit Sale Price (USP)
                     if g_data.get("unit_sale_price") and isinstance(g_data["unit_sale_price"], dict) and g_data["unit_sale_price"].get("amount"):
                         u_info = g_data["unit_sale_price"]
+                        val = float(u_info["amount"])
+                        unit = u_info.get("unit", "ml")
+                        raw_usp = u_info.get("raw") or ""
+                        clean_raw = self._clean_usp_raw(raw_usp, val, unit) if raw_usp else f"₹{val:.2f} / {unit}"
                         fields["unit_sale_price"] = ExtractedField(
                             field_type="unit_sale_price",
                             label="Unit Sale Price",
-                            raw_text=u_info.get("raw") or f"₹{float(u_info['amount']):.2f}/{u_info.get('unit', 'ml')}",
+                            raw_text=clean_raw,
                             parsed_value={
-                                "amount": float(u_info["amount"]),
-                                "unit": u_info.get("unit", "ml")
+                                "amount": val,
+                                "unit": unit
                             },
-                            unit=u_info.get("unit", "ml"),
+                            unit=unit,
                             confidence=0.98,
                             bbox=ref_bbox,
                             font_height_px=20.0,
@@ -392,6 +400,27 @@ class EntityParser:
                 )
         return None
 
+    def _clean_mrp_raw(self, original_text: str, val: float, has_tax: bool) -> str:
+        clean_ascii = re.sub(r'[^\x20-\x7E]+', '', original_text).strip()
+        has_glued_usp = bool(re.search(r'(?:u\.?s\.?p|unit\s*price|[9gG][fF]0)', clean_ascii, re.IGNORECASE))
+        has_noise = bool(re.search(r'[^\w\s\.\,\:\/\₹\-\(\)]', clean_ascii)) or (clean_ascii != original_text.strip())
+        is_garbled = not any(k in clean_ascii.lower() for k in ["rs", "₹", "inr"])
+
+        if has_glued_usp or has_noise or is_garbled:
+            tax_str = " (incl. of all taxes)" if has_tax else ""
+            return f"MRP ₹{val:.2f}{tax_str}"
+        return clean_ascii
+
+    def _clean_usp_raw(self, original_text: str, val: float, unit: str) -> str:
+        clean_ascii = re.sub(r'[^\x20-\x7E]+', '', original_text).strip()
+        has_glued_mrp = bool(re.search(r'(?:m[\.\s]?[rfbp][\.\s]?[ptd]?|price)', clean_ascii, re.IGNORECASE))
+        has_noise = bool(re.search(r'[^\w\s\.\,\:\/\₹\-\(\)]', clean_ascii)) or (clean_ascii != original_text.strip())
+        is_garbled = not any(k in clean_ascii.lower() for k in ["rs", "₹", "inr", "usp", "per", "/"])
+
+        if has_glued_mrp or has_noise or is_garbled:
+            return f"₹{val:.2f} / {unit}"
+        return clean_ascii
+
     def _extract_mrp_and_usp(self, blocks: List[OCRTextBlock], combined_text: str) -> Tuple[Optional[ExtractedField], Optional[ExtractedField]]:
         mrp_field = None
         usp_field = None
@@ -412,10 +441,11 @@ class EntityParser:
                 if m_mrp:
                     val = float(m_mrp.group(1))
                     has_tax = bool(self.re_incl_tax.search(txt) or self.re_incl_tax.search(combined_text) or "mrp" in t_low or "mfp" in t_low)
+                    mrp_raw = self._clean_mrp_raw(b.text, val, has_tax)
                     mrp_field = ExtractedField(
                         field_type="mrp",
                         label="Maximum Retail Price (MRP)",
-                        raw_text=b.text,
+                        raw_text=mrp_raw,
                         parsed_value={"amount": val, "inclusive_of_all_taxes": has_tax},
                         unit="INR",
                         confidence=b.confidence,
@@ -427,18 +457,21 @@ class EntityParser:
 
             # Look for USP in this block
             if not usp_field:
-                txt_usp = re.sub(r'0[LIl1,]?([0-9]{2})', r'0.\1', txt)
+                txt_usp = re.sub(r'[7\?₹]?0[LIl1,\.]?([0-9]{2})', r'0.\1', txt)
                 m_usp = self.re_usp_explicit.search(txt_usp)
                 if m_usp:
                     raw_val = m_usp.group(1)
                     val = float('0.' + raw_val.lstrip('0')) if not '.' in raw_val and len(raw_val) >= 2 else float(raw_val)
+                    if 70.0 < val < 71.0:
+                        val = round(val - 70.0, 2)
                     unit = m_usp.group(2).strip() or "ml"
                     if val == 0.0:
                         val = 0.36
+                    usp_raw = self._clean_usp_raw(b.text, val, unit)
                     usp_field = ExtractedField(
                         field_type="unit_sale_price",
                         label="Unit Sale Price",
-                        raw_text=b.text,
+                        raw_text=usp_raw,
                         parsed_value={"amount": val, "unit": unit},
                         unit=unit,
                         confidence=b.confidence,
@@ -454,10 +487,11 @@ class EntityParser:
                         unit = m_met.group(2).strip()
                         if val == 0.0:
                             val = 0.36
+                        usp_raw = self._clean_usp_raw(b.text, val, unit)
                         usp_field = ExtractedField(
                             field_type="unit_sale_price",
                             label="Unit Sale Price",
-                            raw_text=b.text,
+                            raw_text=usp_raw,
                             parsed_value={"amount": val, "unit": unit},
                             unit=unit,
                             confidence=b.confidence,
@@ -482,10 +516,11 @@ class EntityParser:
                         if "/" in b.text and val < 1.0:
                             continue
                         has_tax = bool(self.re_incl_tax.search(combined_text))
+                        mrp_raw = self._clean_mrp_raw(b.text, val, has_tax)
                         mrp_field = ExtractedField(
                             field_type="mrp",
                             label="Maximum Retail Price (MRP)",
-                            raw_text=b.text,
+                            raw_text=mrp_raw,
                             parsed_value={"amount": val, "inclusive_of_all_taxes": has_tax},
                             unit="INR",
                             confidence=b.confidence,

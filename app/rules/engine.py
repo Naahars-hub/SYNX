@@ -293,6 +293,10 @@ class RulesEngine:
                 statutory_ref=rule_def["statutory_ref"]
             ))
         else:
+            amt = val.get("amount") if isinstance(val, dict) else None
+            m_val = f"₹{float(amt):.2f}" if (amt is not None and isinstance(amt, (int, float))) else (
+                f"₹{field.raw_text}" if not str(field.raw_text).startswith("₹") else str(field.raw_text)
+            )
             evals.append(RuleEvaluation(
                 rule_id=rule_def["id"],
                 clause=rule_def["clause"],
@@ -301,7 +305,7 @@ class RulesEngine:
                 status="PASS",
                 severity="LOW",
                 message=f"MRP compliant with tax inclusivity: '{field.raw_text}'",
-                measured_value=f"₹{val.get('amount') if isinstance(val, dict) else field.raw_text}",
+                measured_value=m_val,
                 expected_value="MRP with tax inclusivity",
                 penalty_risk=None,
                 statutory_ref=rule_def["statutory_ref"]

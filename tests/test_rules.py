@@ -9,7 +9,8 @@ from app.extractor.entities import (
     CalibrationData,
     ExtractedField,
     BoundingBox,
-    PDPCalculation
+    PDPCalculation,
+    OCRTextBlock
 )
 
 class TestLegalMetrologyRules(unittest.TestCase):
@@ -200,6 +201,30 @@ class TestLegalMetrologyRules(unittest.TestCase):
         self.assertIsNotNone(clarity_eval)
         self.assertEqual(clarity_eval.status, "WARNING")
         self.assertIn("Low optical clarity", clarity_eval.message)
+
+    def test_mrp_usp_dot_matrix_noise_cleaning(self):
+        """Dot-matrix OCR text with noise characters (e.g. MRPT125/-USP70.36/包!) must produce clean MRP and USP."""
+        from app.extractor.parser import EntityParser
+        parser = EntityParser()
+        block = OCRTextBlock(
+            text="MRPT125/-USP70.36/包!",
+            confidence=0.88,
+            bbox=BoundingBox(x=10, y=10, width=120, height=25),
+            height_px=22
+        )
+        fields = parser.parse([block])
+        self.assertIn("mrp", fields)
+        self.assertIn("unit_sale_price", fields)
+
+        mrp_fld = fields["mrp"]
+        self.assertEqual(mrp_fld.parsed_value["amount"], 125.0)
+        self.assertNotIn("包", mrp_fld.raw_text)
+        self.assertNotIn("USP", mrp_fld.raw_text)
+
+        usp_fld = fields["unit_sale_price"]
+        self.assertEqual(usp_fld.parsed_value["amount"], 0.36)
+        self.assertNotIn("包", usp_fld.raw_text)
+        self.assertNotIn("MRPT", usp_fld.raw_text)
 
 if __name__ == "__main__":
     unittest.main()

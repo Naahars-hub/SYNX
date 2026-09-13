@@ -873,6 +873,145 @@ function prepareCanvasBoxesForAngle(blocks, extractedFields, ruleEvaluations) {
   });
 }
 
+function formatFieldDisplay(key, field) {
+  if (!field) {
+    return '<span style="color:var(--text-red); font-weight:500;">Not Detected</span>';
+  }
+
+  // Strip non-ascii OCR artifacts (e.g., stray Chinese/Japanese glyphs like 包! or unprintable control chars)
+  const cleanStr = (s) => {
+    if (!s) return '';
+    return String(s).replace(/[^\x20-\x7E\u20B9]/g, '').trim();
+  };
+
+  const parsed = field.parsed_value;
+
+  if (key === 'mrp') {
+    let amt = null;
+    let isTaxIncl = true;
+
+    if (parsed && typeof parsed === 'object') {
+      if (parsed.amount != null) amt = Number(parsed.amount);
+      if (parsed.inclusive_of_all_taxes !== undefined) isTaxIncl = Boolean(parsed.inclusive_of_all_taxes);
+    } else if (typeof parsed === 'number') {
+      amt = parsed;
+    } else if (typeof parsed === 'string') {
+      const match = parsed.match(/([0-9]+(?:\.[0-9]+)?)/);
+      if (match) amt = parseFloat(match[1]);
+    }
+
+    if (amt != null && !isNaN(amt)) {
+      const formattedAmt = amt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const taxBadge = isTaxIncl
+        ? `<span style="font-size:0.68rem; font-weight:600; color:var(--text-cyan, #06b6d4); background:var(--accent-blue-subtle, rgba(6,182,212,0.12)); border:1px solid var(--accent-blue-border, rgba(6,182,212,0.25)); padding:1.5px 6px; border-radius:4px; white-space:nowrap;">Incl. of all taxes</span>`
+        : `<span style="font-size:0.68rem; font-weight:600; color:var(--text-amber, #f59e0b); background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.25); padding:1.5px 6px; border-radius:4px; white-space:nowrap;">Taxes Unspecified</span>`;
+
+      return `<div style="display:inline-flex; align-items:center; flex-wrap:wrap; gap:6px;">
+        <span style="font-family:var(--font-mono); font-weight:700; font-size:0.92rem; color:var(--text-primary);">₹${formattedAmt}</span>
+        ${taxBadge}
+      </div>`;
+    }
+  }
+
+  if (key === 'unit_sale_price') {
+    let amt = null;
+    let unit = 'ml';
+
+    if (parsed && typeof parsed === 'object') {
+      if (parsed.amount != null) amt = Number(parsed.amount);
+      if (parsed.unit) unit = cleanStr(parsed.unit) || 'ml';
+    } else if (typeof parsed === 'number') {
+      amt = parsed;
+      if (field.unit) unit = cleanStr(field.unit);
+    } else if (typeof parsed === 'string') {
+      const match = parsed.match(/([0-9]+(?:\.[0-9]+)?)/);
+      if (match) amt = parseFloat(match[1]);
+      if (field.unit) unit = cleanStr(field.unit);
+    }
+
+    if (amt != null && !isNaN(amt)) {
+      const formattedAmt = amt < 1 ? amt.toFixed(2) : amt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return `<div style="display:inline-flex; align-items:baseline; gap:4px;">
+        <span style="font-family:var(--font-mono); font-weight:700; font-size:0.92rem; color:var(--text-primary);">₹${formattedAmt}</span>
+        <span style="color:var(--text-secondary); font-size:0.8rem; font-family:var(--font-mono); font-weight:600;">/ ${escapeHtml(unit)}</span>
+      </div>`;
+    }
+  }
+
+  if (key === 'net_quantity') {
+    let amt = null;
+    let unit = field.unit ? cleanStr(field.unit) : 'g';
+
+    if (parsed && typeof parsed === 'object') {
+      if (parsed.amount != null) amt = parsed.amount;
+      if (parsed.unit) unit = cleanStr(parsed.unit);
+    } else if (typeof parsed === 'number') {
+      amt = parsed;
+    } else if (typeof parsed === 'string') {
+      amt = cleanStr(parsed);
+    }
+
+    if (amt != null) {
+      return `<div style="display:inline-flex; align-items:baseline; gap:4px;">
+        <span style="font-family:var(--font-mono); font-weight:700; font-size:0.92rem; color:var(--text-primary);">${escapeHtml(String(amt))}</span>
+        <span style="color:var(--text-secondary); font-size:0.82rem; font-family:var(--font-mono); font-weight:600;">${escapeHtml(unit)}</span>
+      </div>`;
+    }
+  }
+
+  if (key === 'consumer_care') {
+    if (parsed && typeof parsed === 'object') {
+      const phone = cleanStr(parsed.phone);
+      const email = cleanStr(parsed.email);
+      if (phone || email) {
+        let parts = [];
+        if (phone) {
+          parts.push(`<span style="display:inline-flex; align-items:center; gap:4px; font-family:var(--font-mono); font-size:0.75rem; background:rgba(255,255,255,0.05); padding:2px 7px; border-radius:4px; border:1px solid var(--border-color, rgba(255,255,255,0.08)); color:var(--text-primary);"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-cyan);"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> ${escapeHtml(phone)}</span>`);
+        }
+        if (email) {
+          parts.push(`<span style="display:inline-flex; align-items:center; gap:4px; font-family:var(--font-mono); font-size:0.75rem; background:rgba(255,255,255,0.05); padding:2px 7px; border-radius:4px; border:1px solid var(--border-color, rgba(255,255,255,0.08)); color:var(--text-primary);"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-cyan);"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> ${escapeHtml(email)}</span>`);
+        }
+        return `<div style="display:flex; flex-wrap:wrap; gap:5px;">${parts.join('')}</div>`;
+      }
+    }
+  }
+
+  if (key === 'country_of_origin') {
+    const orig = (typeof parsed === 'string' && parsed) ? parsed : (field.raw_text || '');
+    const cleanOrig = cleanStr(orig);
+    const isIndia = /india/i.test(cleanOrig);
+    return `<div style="display:inline-flex; align-items:center; gap:6px;">
+      <span style="font-size:1rem;">${isIndia ? '🇮🇳' : '🌐'}</span>
+      <span style="font-weight:600; color:var(--text-primary); font-size:0.88rem;">${escapeHtml(cleanOrig || 'India')}</span>
+    </div>`;
+  }
+
+  if (key === 'manufacturer') {
+    if (parsed && typeof parsed === 'object') {
+      const decl = parsed.declaration || parsed.address || parsed.name || field.raw_text;
+      const cleanDecl = cleanStr(decl);
+      const pinBadge = parsed.has_pincode
+        ? `<span style="font-size:0.65rem; color:var(--text-green, #10b981); background:var(--accent-green-subtle, rgba(16,185,129,0.12)); border:1px solid var(--accent-green-border, rgba(16,185,129,0.25)); border-radius:3px; padding:1px 5px; margin-left:6px; font-weight:600; white-space:nowrap;">PIN Verified</span>`
+        : '';
+      return `<div style="font-size:0.82rem; line-height:1.35; color:var(--text-primary);">${escapeHtml(cleanDecl)}${pinBadge}</div>`;
+    }
+  }
+
+  if (key === 'commodity_name') {
+    const val = (typeof parsed === 'string' && parsed) ? parsed : (field.raw_text || '');
+    return `<span style="font-weight:600; color:var(--text-primary); font-size:0.88rem;">${escapeHtml(cleanStr(val))}</span>`;
+  }
+
+  if (key === 'mfg_date' || key === 'best_before') {
+    const val = (typeof parsed === 'string' && parsed) ? parsed : (field.raw_text || '');
+    return `<span style="font-family:var(--font-mono); font-weight:600; color:var(--text-primary); font-size:0.85rem;">${escapeHtml(cleanStr(val))}</span>`;
+  }
+
+  // Generic fallback:
+  const displayVal = typeof parsed === 'string' ? parsed : (field.raw_text || '');
+  return escapeHtml(cleanStr(displayVal));
+}
+
 function populateDeclarationsTable(audit) {
   const tbody = document.getElementById('declarationsTableBody');
   tbody.innerHTML = '';
@@ -906,7 +1045,7 @@ function populateDeclarationsTable(audit) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><b>${item.name}</b><br/><span style="font-size:0.65rem;color:var(--text-muted);font-family:var(--font-mono);">${item.clause}</span></td>
-      <td>${field ? escapeHtml(field.raw_text) : '<span style="color:var(--text-red);">Not Detected</span>'}</td>
+      <td>${formatFieldDisplay(item.key, field)}</td>
       <td>${angleBadge}</td>
       <td>${field && field.font_height_mm ? `<span style="font-family:var(--font-mono);">${field.font_height_mm.toFixed(2)} mm</span>` : '--'}</td>
       <td><span class="status-badge badge-${status}">${status}</span></td>
