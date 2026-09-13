@@ -7,7 +7,9 @@ __pycache__/
 *.db
 data/reports/*
 data/uploads/*
+data/backups/*
 !.gitkeep
 .env
 .env.*
 scratch/
+cloudflared.exe

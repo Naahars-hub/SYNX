@@ -957,16 +957,16 @@ function toggleClaheView() {
   switchAngleView(activeAngleId);
 }
 
-// Canvas Tooltip & Hover
+// Canvas Tooltip, Hover & Mobile Touch Interaction
 function setupCanvasInteraction() {
-  labelCanvas.addEventListener('mousemove', (e) => {
+  function handleCanvasPointer(clientX, clientY, pageX, pageY) {
     if (!loadedImage || ocrBoxes.length === 0) return;
 
     const rect = labelCanvas.getBoundingClientRect();
     const scaleX = labelCanvas.width / rect.width;
     const scaleY = labelCanvas.height / rect.height;
-    const mouseX = (e.clientX - rect.left) * scaleX;
-    const mouseY = (e.clientY - rect.top) * scaleY;
+    const mouseX = (clientX - rect.left) * scaleX;
+    const mouseY = (clientY - rect.top) * scaleY;
 
     let hovered = null;
     const imgScale = labelCanvas.width / loadedImage.naturalWidth;
@@ -985,8 +985,10 @@ function setupCanvasInteraction() {
 
     if (hovered) {
       canvasTooltip.style.display = 'block';
-      canvasTooltip.style.left = `${e.pageX + 15}px`;
-      canvasTooltip.style.top = `${e.pageY + 10}px`;
+      const maxLeft = Math.max(10, window.innerWidth - 240);
+      const toolX = Math.min(maxLeft, Math.max(10, pageX + 12));
+      canvasTooltip.style.left = `${toolX}px`;
+      canvasTooltip.style.top = `${pageY + 10}px`;
 
       const claheBadge = (hovered.sourceEnhancement === 'clahe') 
         ? '<div style="font-size:0.68rem;color:#06b6d4;font-weight:600;margin-top:3px;display:flex;align-items:center;gap:3px;"><span>✨</span> Recovered via OpenCV CLAHE Anti-Glare</div>' 
@@ -1005,12 +1007,34 @@ function setupCanvasInteraction() {
       canvasTooltip.style.display = 'none';
       renderCanvas(null);
     }
+  }
+
+  labelCanvas.addEventListener('mousemove', (e) => {
+    handleCanvasPointer(e.clientX, e.clientY, e.pageX, e.pageY);
   });
+
+  labelCanvas.addEventListener('click', (e) => {
+    handleCanvasPointer(e.clientX, e.clientY, e.pageX, e.pageY);
+  });
+
+  labelCanvas.addEventListener('touchstart', (e) => {
+    if (e.touches && e.touches.length === 1) {
+      const t = e.touches[0];
+      handleCanvasPointer(t.clientX, t.clientY, t.pageX, t.pageY);
+    }
+  }, { passive: true });
 
   labelCanvas.addEventListener('mouseleave', () => {
     canvasTooltip.style.display = 'none';
     renderCanvas(null);
   });
+
+  document.addEventListener('touchstart', (e) => {
+    if (!e.target.closest('#labelCanvas')) {
+      canvasTooltip.style.display = 'none';
+      renderCanvas(null);
+    }
+  }, { passive: true });
 }
 
 // Download PDF Report
@@ -1430,13 +1454,17 @@ async function openHistoryModal() {
     if (scopeTabs) scopeTabs.style.display = 'flex';
     updateScopeTabButtons();
     if (titleElem) {
+      const firstName = (currentUser.name || 'Officer').split(' ')[0];
       titleElem.innerHTML = `
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
           <ellipse cx="12" cy="5" rx="9" ry="3"/>
           <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
           <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
         </svg>
-        Statutory Inspection SQL Ledger &bull; <span style="font-size:0.85rem;color:var(--text-green);">${escapeHtml(currentUser.name)}</span>
+        <span class="ledger-title-text">
+          <span class="desktop-title">Statutory Inspection SQL Ledger &bull; <b style="color:var(--text-green);">${escapeHtml(currentUser.name)}</b></span>
+          <span class="mobile-title">Audit Ledger &bull; <b style="color:var(--text-green);">${escapeHtml(firstName)}</b></span>
+        </span>
       `;
     }
   } else {
@@ -1444,12 +1472,12 @@ async function openHistoryModal() {
     if (scopeTabs) scopeTabs.style.display = 'none';
     if (titleElem) {
       titleElem.innerHTML = `
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
           <ellipse cx="12" cy="5" rx="9" ry="3"/>
           <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
           <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
         </svg>
-        Statutory Inspection SQL Ledger
+        <span>Statutory Inspection SQL Ledger</span>
       `;
     }
   }
@@ -1486,11 +1514,11 @@ function updateScopeTabButtons() {
   if (btnMine && btnAll) {
     const isInspector = currentUser && isInspectorRole(currentUser.role);
     if (!isInspector) {
-      btnAll.innerHTML = '🔒 All Records (Inspector Only)';
+      btnAll.innerHTML = '<span class="desktop-title">🔒 All Records (Inspector Only)</span><span class="mobile-title">🔒 All Records</span>';
       btnAll.title = 'Only officers holding the Legal Metrology Inspector role can access all department ledgers.';
-      btnAll.style.opacity = '0.75';
+      btnAll.style.opacity = '0.85';
     } else {
-      btnAll.innerHTML = '🌐 All Department Records';
+      btnAll.innerHTML = '<span class="desktop-title">🌐 All Department Records</span><span class="mobile-title">🌐 All Records</span>';
       btnAll.title = 'View all statutory inspections across all officers';
       btnAll.style.opacity = '1';
     }
@@ -1519,30 +1547,40 @@ function onHistorySearch() {
 
 async function loadSqlAnalytics() {
   const bar = document.getElementById('sqlAnalyticsBar');
+  if (!bar) return;
   try {
     const headers = {};
     if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
     const res = await fetch('/api/analytics', { headers });
     const data = await res.json();
 
-    let officerFragment = '';
+    let officerChip = '';
     if (data.officer_name) {
-      officerFragment = `
-        <span style="font-weight:600;color:var(--text-primary);">Officer: <span style="font-family:var(--font-mono);color:var(--text-green);">${escapeHtml(data.officer_name)}</span> (My Audits: <b style="color:var(--text-cyan);">${data.officer_audit_count || 0}</b>)</span>
-        <span style="color:var(--border-strong);">|</span>
+      officerChip = `
+        <span class="analytics-chip analytics-chip-officer">
+          <span style="color:var(--text-muted);">Officer:</span>
+          <b style="color:var(--text-green);">${escapeHtml(data.officer_name)}</b>
+          <span class="badge badge-info" style="font-size:0.65rem;padding:1px 5px;margin-left:2px;">${data.officer_audit_count || 0}</span>
+        </span>
       `;
     }
 
     bar.innerHTML = `
-      ${officerFragment}
-      <span style="font-weight:600;color:var(--text-primary);">Total Recorded: <span style="font-family:var(--font-mono);color:var(--text-cyan);">${data.total_inspections}</span></span>
-      <span style="color:var(--border-strong);">|</span>
-      <span style="color:var(--text-secondary);">Compliance Rate: <b style="color:var(--text-green);font-family:var(--font-mono);">${data.compliance_rate_percent}%</b></span>
-      <span style="color:var(--border-strong);">|</span>
-      <span style="color:var(--text-muted);">Storage: <span style="font-family:var(--font-mono);color:var(--text-secondary);">SQLite / PostgreSQL Relational</span></span>
+      ${officerChip}
+      <span class="analytics-chip">
+        <span style="color:var(--text-muted);">Total:</span>
+        <b style="color:var(--text-cyan);">${data.total_inspections}</b>
+      </span>
+      <span class="analytics-chip">
+        <span style="color:var(--text-muted);">Compliance:</span>
+        <b style="color:var(--text-green);">${data.compliance_rate_percent}%</b>
+      </span>
+      <span class="analytics-chip analytics-chip-storage">
+        <span>SQLite Relational</span>
+      </span>
     `;
   } catch (err) {
-    bar.innerHTML = '<span style="color:var(--text-muted);">SQL Database Online</span>';
+    bar.innerHTML = '<span style="color:var(--text-muted);font-size:0.75rem;">SQL Database Connected</span>';
   }
 }
 
@@ -1585,10 +1623,16 @@ async function loadAuditHistory(searchQuery = '') {
 
     tbody.innerHTML = '';
     records.forEach(item => {
-      const dt = item.created_at ? item.created_at.replace('T', ' ').substring(0, 19) : '--';
-      const commodity = item.commodity_name || '<i style="color:var(--text-muted);">Unidentified</i>';
-      const mfg = item.manufacturer || '<i style="color:var(--text-muted);">Unspecified</i>';
-      const score = item.overall_score ? `${item.overall_score.toFixed(0)}%` : '--%';
+      const dt = item.created_at ? item.created_at.replace('T', ' ').substring(0, 16) : '--';
+      const commodity = item.commodity_name
+        ? escapeHtml(item.commodity_name)
+        : '<span style="color:var(--text-muted);font-style:italic;">Unidentified</span>';
+      const mfg = item.manufacturer
+        ? escapeHtml(item.manufacturer)
+        : '<span style="color:var(--text-muted);font-style:italic;">Unspecified</span>';
+      const score = item.overall_score !== null && item.overall_score !== undefined
+        ? `${item.overall_score.toFixed(0)}%`
+        : '--%';
       const inspectorPill = item.inspector_name
         ? `<div style="font-size: 0.68rem; color: #059669; font-weight: 500; margin-top: 2px;">👮 ${escapeHtml(item.inspector_name)}</div>`
         : '';
@@ -1600,19 +1644,19 @@ async function loadAuditHistory(searchQuery = '') {
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-secondary);">${dt}</td>
+        <td style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-secondary);white-space:nowrap;">${dt}</td>
         <td>
-          <b>${escapeHtml(commodity)}</b>
+          <div style="font-weight:600;font-size:0.8rem;">${commodity}</div>
           ${inspectorPill}
         </td>
-        <td style="font-size:0.75rem;">${escapeHtml(mfg)}</td>
+        <td style="font-size:0.75rem;color:var(--text-secondary);">${mfg}</td>
         <td style="font-family:var(--font-mono);font-weight:600;">${score}</td>
         <td><span class="status-badge ${badgeClass}">${item.verdict}</span></td>
         <td style="white-space:nowrap;">
-          <button class="btn btn-secondary" style="padding:2px 8px;font-size:0.7rem;height:24px;" onclick="loadHistoricalAudit('${item.audit_id}')">
+          <button class="btn btn-secondary" style="padding:2px 8px;font-size:0.7rem;height:26px;" onclick="loadHistoricalAudit('${item.audit_id}')">
             🔍 Inspect
           </button>
-          <a href="/api/reports/${item.audit_id}" target="_blank" class="btn btn-primary" style="padding:2px 8px;font-size:0.7rem;height:24px;text-decoration:none;margin-left:4px;">
+          <a href="/api/reports/${item.audit_id}" target="_blank" class="btn btn-primary" style="padding:2px 8px;font-size:0.7rem;height:26px;text-decoration:none;margin-left:4px;">
             📄 PDF
           </a>
         </td>
@@ -2011,6 +2055,132 @@ function renderAuthUI(user) {
     if (badge) badge.style.display = 'none';
     hideUserDropdown();
   }
+
+  // Synchronize mobile navigation drawer authentication state
+  syncDrawerAuthUI(user);
 }
+
+// ==========================================================================
+// 📱 Mobile Navigation Drawer & Bottom Bar Handlers
+// ==========================================================================
+
+function toggleMobileDrawer() {
+  const drawer = document.getElementById('mobileNavDrawer');
+  const backdrop = document.getElementById('mobileDrawerBackdrop');
+  if (!drawer || !backdrop) return;
+
+  const isOpen = drawer.classList.contains('active');
+  if (isOpen) {
+    closeMobileDrawer();
+  } else {
+    openMobileDrawer();
+  }
+}
+
+function openMobileDrawer() {
+  const drawer = document.getElementById('mobileNavDrawer');
+  const backdrop = document.getElementById('mobileDrawerBackdrop');
+  if (!drawer || !backdrop) return;
+
+  syncDrawerAuthUI(currentUser);
+  drawer.classList.add('active');
+  backdrop.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeMobileDrawer() {
+  const drawer = document.getElementById('mobileNavDrawer');
+  const backdrop = document.getElementById('mobileDrawerBackdrop');
+  if (drawer) drawer.classList.remove('active');
+  if (backdrop) backdrop.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function syncDrawerAuthUI(user) {
+  const officerCard = document.getElementById('drawerOfficerCard');
+  const authAction = document.getElementById('drawerAuthAction');
+  const nameEl = document.getElementById('drawerUserName');
+  const emailEl = document.getElementById('drawerUserEmail');
+  const roleEl = document.getElementById('drawerUserRole');
+  const avatarEl = document.getElementById('drawerUserAvatar');
+
+  if (user) {
+    if (officerCard) officerCard.style.display = 'flex';
+    if (nameEl) nameEl.textContent = user.name || 'Inspector';
+    if (emailEl) emailEl.textContent = user.email || '';
+    if (roleEl) roleEl.textContent = user.role || 'Legal Metrology Officer';
+
+    if (avatarEl) {
+      if (user.picture) {
+        avatarEl.innerHTML = `<img src="${escapeHtml(user.picture)}" alt="${escapeHtml(user.name)}" referrerpolicy="no-referrer" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+      } else {
+        const initials = (user.name || 'IN').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        avatarEl.innerHTML = `<span id="drawerUserInitials">${initials}</span>`;
+      }
+    }
+
+    if (authAction) {
+      authAction.innerHTML = `
+        <button type="button" class="btn btn-secondary text-danger" style="width: 100%; height: 38px; gap: 0.4rem;" onclick="logoutUser(); closeMobileDrawer();">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          <span>Sign Out</span>
+        </button>
+      `;
+    }
+  } else {
+    if (officerCard) officerCard.style.display = 'none';
+    if (authAction) {
+      authAction.innerHTML = `
+        <button type="button" class="btn btn-primary" style="width: 100%; height: 38px; gap: 0.4rem;" onclick="openLoginModal(); closeMobileDrawer();">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+            <polyline points="10 17 15 12 10 7"/>
+            <line x1="15" y1="12" x2="3" y2="12"/>
+          </svg>
+          <span>Sign In</span>
+        </button>
+      `;
+    }
+  }
+}
+
+function navToScanTab() {
+  const dropZone = document.getElementById('dropZone');
+  if (dropZone) {
+    dropZone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    dropZone.style.boxShadow = '0 0 0 3px var(--accent-primary-glow)';
+    setTimeout(() => {
+      dropZone.style.boxShadow = '';
+    }, 1500);
+  }
+  updateActiveBottomTab('tabScan');
+}
+
+function handleMobileOfficerTab() {
+  updateActiveBottomTab('tabOfficer');
+  if (currentUser && authToken) {
+    openRoleModal();
+  } else {
+    openLoginModal();
+  }
+}
+
+function updateActiveBottomTab(activeId) {
+  document.querySelectorAll('.bottom-bar-item').forEach(btn => {
+    btn.classList.toggle('active', btn.id === activeId);
+  });
+}
+
+// Global escape key listener to close drawer if open
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeMobileDrawer();
+  }
+});
+
 
 

@@ -17,7 +17,8 @@ from app.db.database import (
     count_inspector_audits,
     is_inspector_role,
     list_all_users,
-    update_user_role
+    update_user_role,
+    check_db_health
 )
 
 __all__ = [
@@ -36,4 +37,5 @@ __all__ = [
     "is_inspector_role",
     "list_all_users",
     "update_user_role",
+    "check_db_health",
 ]

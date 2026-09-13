@@ -498,3 +498,28 @@ def get_system_analytics() -> Dict[str, Any]:
             "compliance_rate_percent": round(compliance_rate, 1),
             "top_statutory_violations": top_violations
         }
+
+
+def check_db_health() -> Dict[str, Any]:
+    """Verifies SQLite database connectivity and returns table row counts."""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM inspections;")
+            inspections_count = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM users;")
+            users_count = cursor.fetchone()[0]
+            db_size_bytes = DATABASE_PATH.stat().st_size if DATABASE_PATH.exists() else 0
+            return {
+                "status": "connected",
+                "engine": "SQLite3",
+                "database_name": DATABASE_PATH.name,
+                "size_kb": round(db_size_bytes / 1024, 2),
+                "inspections_count": inspections_count,
+                "users_count": users_count
+            }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e)
+        }

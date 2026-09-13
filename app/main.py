@@ -49,7 +49,8 @@ from app.db import (
     count_inspector_audits,
     is_inspector_role,
     list_all_users,
-    update_user_role
+    update_user_role,
+    check_db_health
 )
 
 app = FastAPI(
@@ -60,8 +61,8 @@ app = FastAPI(
 
 from fastapi.middleware.cors import CORSMiddleware
 
-# Security: CORS configuration restricted to localhost, private LAN IPs (mobile companion), and configured origins
-cors_regex = r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$"
+# Security: CORS configuration restricted to localhost, private LAN IPs, and online tunnel/cloud domains
+cors_regex = r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|.*\.trycloudflare\.com|.*\.onrender\.com)(:\d+)?$"
 local_ip = get_local_ip()
 explicit_origins = [
     "http://localhost:8000",
@@ -220,10 +221,13 @@ async def serve_index():
 
 @app.get("/api/health")
 async def health_check():
+    db_info = check_db_health()
+    is_healthy = db_info.get("status") == "connected"
     return {
-        "status": "healthy",
+        "status": "healthy" if is_healthy else "degraded",
         "system": "SYNX Legal Metrology Compliance Engine",
         "ocr_loaded": ocr_engine.engine is not None,
+        "database": db_info,
         "timestamp": datetime.now().isoformat()
     }
 
@@ -1182,10 +1186,15 @@ async def download_report(audit_id: str):
         if db_audit and db_audit.get("audit_detail"):
             try:
                 from app.extractor.entities import AuditResult
-                reconstructed = AuditResult.from_dict(db_audit["audit_detail"])
-                img_path = Path(reconstructed.image_url.lstrip("/"))
-                if not img_path.exists():
-                    img_path = BASE_DIR / reconstructed.image_url.lstrip("/")
+                reconstructed = AuditResult.model_validate(db_audit["audit_detail"])
+                img_path = None
+                if reconstructed.image_url:
+                    clean_rel = reconstructed.image_url.lstrip("/")
+                    p1 = BASE_DIR / clean_rel
+                    p2 = Path(clean_rel)
+                    img_path = p1 if p1.exists() else (p2 if p2.exists() else None)
+                if not img_path:
+                    img_path = BASE_DIR / "sample_labels" / "sample_01_compliant_snack.png"
                 pdf_generator.generate_report(reconstructed, img_path)
             except Exception as e:
                 print(f"Could not regenerate PDF for {audit_id}: {e}")

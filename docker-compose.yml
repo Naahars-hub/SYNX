@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: synx-metrology-engine:latest
+    container_name: synx_metrology_app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - AUTH_SECRET_KEY=synx-legal-metrology-auth-key-2026
+      - GOOGLE_CLIENT_ID=849299945889-dd0m49qgfji94h42ln3un3qcnge88mq5.apps.googleusercontent.com
+      - SESSION_EXPIRY_DAYS=30
+      - RATE_LIMIT_PER_MINUTE=60
+      - ALLOWED_ORIGINS=http://localhost:8000,http://127.0.0.1:8000
+    volumes:
+      # Persistent host volume mount for SQLite database, upload cache, and PDF reports
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s

@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: synx-legal-metrology
+    runtime: docker
+    plan: starter
+    region: singapore
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    disk:
+      name: synx-data
+      mountPath: /app/data
+      sizeGB: 10
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: HOST
+        value: 0.0.0.0
+      - key: AUTH_SECRET_KEY
+        generateValue: true
+      - key: GOOGLE_CLIENT_ID
+        value: 849299945889-dd0m49qgfji94h42ln3un3qcnge88mq5.apps.googleusercontent.com
+      - key: SESSION_EXPIRY_DAYS
+        value: 30
+      - key: RATE_LIMIT_PER_MINUTE
+        value: 60

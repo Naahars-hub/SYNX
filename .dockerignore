@@ -1,0 +1,27 @@
+# Version control & virtual environments
+.git
+.gitignore
+.venv
+venv
+ENV/
+
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Local documents & presentations
+*.pptx
+*.docx
+*.pdf
+*.log
+scratch/
+user_inspection_dump.txt
+generate_explainer_pdf.py
+
+# Local transient cache (data directory will be mounted as volume)
+data/uploads/*
+data/reports/*
+data/backups/*

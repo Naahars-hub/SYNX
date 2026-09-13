@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=5.7.0">
+  <link rel="stylesheet" href="/static/css/style.css?v=6.2.0">
   <script>
     // Force default to clean light theme
     try {
@@ -37,7 +37,8 @@
       </div>
       <div>
         <div class="brand-name">
-          SYNX Compliance AI
+          <span class="brand-name-full">SYNX Compliance AI</span>
+          <span class="brand-name-short">SYNX AI</span>
           <span class="brand-badge">PS #26034</span>
         </div>
         <div class="brand-desc">Legal Metrology (Packaged Commodities) Rules, 2011 Automated Verification</div>
@@ -45,38 +46,38 @@
     </div>
 
     <div class="nav-actions">
-      <button class="btn btn-secondary" onclick="openHistoryModal()" title="View past audit records">
+      <button class="btn btn-secondary desktop-only-nav" onclick="openHistoryModal()" title="View past audit records">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <ellipse cx="12" cy="5" rx="9" ry="3"/>
           <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
           <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
         </svg>
-        Audit History
+        <span class="nav-btn-text">Audit History</span>
       </button>
 
-      <button class="btn btn-secondary" onclick="openMobileConnectModal()" title="Scan with mobile camera">
+      <button class="btn btn-secondary desktop-only-nav" id="btnNavMobileScanner" onclick="openMobileConnectModal()" title="Scan with mobile camera">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
           <path d="M12 18h.01"/>
         </svg>
-        Mobile Scanner
+        <span class="nav-btn-text">Mobile Scanner</span>
       </button>
 
-      <button class="btn btn-secondary" onclick="openWebcamModal()" title="Live optical webcam capture">
+      <button class="btn btn-secondary desktop-only-nav" onclick="openWebcamModal()" title="Live optical webcam capture">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
           <circle cx="12" cy="13" r="3"/>
         </svg>
-        Webcam
+        <span class="nav-btn-text">Webcam</span>
       </button>
 
-      <button class="btn btn-secondary" onclick="openRulebookModal()" title="Inspect digitized rules">
+      <button class="btn btn-secondary desktop-only-nav" onclick="openRulebookModal()" title="Inspect digitized rules">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
           <path d="M6 6h10"/>
           <path d="M6 10h10"/>
         </svg>
-        Rulebook
+        <span class="nav-btn-text">Rulebook</span>
       </button>
 
       <button class="btn btn-secondary theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Switch Light / Dark Theme">
@@ -158,6 +159,15 @@
           </div>
         </div>
       </div>
+
+      <!-- Mobile Hamburger Button -->
+      <button class="btn btn-secondary btn-mobile-menu" id="btnMobileMenu" onclick="toggleMobileDrawer()" title="Open navigation menu" aria-label="Open navigation menu">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="6" x2="20" y2="6"/>
+          <line x1="4" y1="12" x2="20" y2="12"/>
+          <line x1="4" y1="18" x2="20" y2="18"/>
+        </svg>
+      </button>
     </div>
   </header>
 
@@ -195,13 +205,37 @@
                 <path d="m16 16-4-4-4 4"/>
               </svg>
             </div>
-            <div class="dropzone-title">Drop Product Label Photo or PDF Document Here</div>
+            <div class="dropzone-title">
+              <span class="desktop-drop-text">Drop Product Label Photo or PDF Document Here</span>
+              <span class="mobile-drop-text">Tap to Upload Label or Document</span>
+            </div>
             <div class="dropzone-subtitle">Multi-angle verification for all package faces & panels</div>
             <div class="dropzone-limits">
               <span class="limit-pill">Max 6 Files</span>
               <span class="limit-pill">10 MB Limit / File</span>
               <span class="limit-pill">JPG, PNG, WEBP, PDF</span>
             </div>
+
+            <!-- Ingestion Action Buttons (Camera & Gallery side-by-side on mobile) -->
+            <div class="mobile-ingestion-actions" style="margin-top: 0.85rem;">
+              <button type="button" class="btn btn-primary btn-mobile-camera" onclick="event.stopPropagation(); document.getElementById('cameraInputDirect').click();">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                  <circle cx="12" cy="13" r="3"/>
+                </svg>
+                <span>Take Photo</span>
+              </button>
+              <button type="button" class="btn btn-secondary btn-mobile-gallery" onclick="event.stopPropagation(); document.getElementById('fileInput').click();">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                  <circle cx="9" cy="9" r="2"/>
+                  <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                </svg>
+                <span>Choose Files</span>
+              </button>
+              <input type="file" id="cameraInputDirect" accept="image/*" capture="environment" style="display: none;" onchange="handleFileSelect(event)">
+            </div>
+
             <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/bmp,application/pdf" multiple style="display: none;" onchange="handleFileSelect(event)">
           </div>
 
@@ -241,8 +275,8 @@
             </div>
 
             <!-- Dimension Fields -->
-            <div class="form-row" id="dimFields">
-              <div class="form-group">
+            <div class="dim-fields-grid" id="dimFields">
+              <div class="form-group form-group-pkg-type">
                 <label>Package Type</label>
                 <select id="pkgType" class="form-control">
                   <option value="rectangular">Rectangular Box / Pouch</option>
@@ -250,17 +284,19 @@
                   <option value="other">Other Package Shape</option>
                 </select>
               </div>
-              <div class="form-group">
-                <label>Width (mm)</label>
-                <input type="number" id="pkgWidth" class="form-control" value="120" min="5" max="2500" step="1">
-              </div>
-              <div class="form-group">
-                <label>Height (mm)</label>
-                <input type="number" id="pkgHeight" class="form-control" value="180" min="5" max="2500" step="1">
-              </div>
-              <div class="form-group">
-                <label>Depth (mm)</label>
-                <input type="number" id="pkgDepth" class="form-control" value="40" min="0" max="2500" step="1">
+              <div class="dim-inputs-row">
+                <div class="form-group">
+                  <label>Width (mm)</label>
+                  <input type="number" id="pkgWidth" class="form-control" value="120" min="5" max="2500" step="1">
+                </div>
+                <div class="form-group">
+                  <label>Height (mm)</label>
+                  <input type="number" id="pkgHeight" class="form-control" value="180" min="5" max="2500" step="1">
+                </div>
+                <div class="form-group">
+                  <label>Depth (mm)</label>
+                  <input type="number" id="pkgDepth" class="form-control" value="40" min="0" max="2500" step="1">
+                </div>
               </div>
             </div>
 
@@ -721,20 +757,22 @@
         <button class="btn btn-secondary" onclick="closeHistoryModal()" style="height: 30px; width: 30px; padding: 0;">✕</button>
       </div>
       <div class="modal-body">
-        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
-          <div style="display: flex; gap: 0.4rem; align-items: center;" id="ledgerScopeTabs">
+        <div class="ledger-toolbar">
+          <div class="ledger-scope-tabs" id="ledgerScopeTabs">
             <button type="button" class="btn btn-sm btn-primary" id="btnScopeMine" onclick="switchLedgerScope('mine')">
-              👤 My Audits
+              <span class="desktop-title">👤 My Audits</span>
+              <span class="mobile-title">👤 My Audits</span>
             </button>
             <button type="button" class="btn btn-sm btn-secondary" id="btnScopeAll" onclick="switchLedgerScope('all')">
-              🌐 All Department Records
+              <span class="desktop-title">🌐 All Department Records</span>
+              <span class="mobile-title">🌐 All Records</span>
             </button>
           </div>
-          <input type="text" id="historySearchInput" class="form-control" placeholder="Search commodity or manufacturer..." style="width: 260px;" oninput="onHistorySearch()">
+          <input type="text" id="historySearchInput" class="form-control" placeholder="Search commodity or manufacturer..." oninput="onHistorySearch()">
         </div>
 
-        <div style="display: flex; gap: 0.75rem; font-size: 0.78rem; margin-bottom: 0.85rem; padding: 0.4rem 0.6rem; background: var(--bg-tertiary); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); flex-wrap: wrap;" id="sqlAnalyticsBar">
-          <span style="color: var(--text-muted);">Loading SQL stats...</span>
+        <div class="sql-analytics-bar" id="sqlAnalyticsBar">
+          <span style="color: var(--text-muted); font-size: 0.75rem;">Loading SQL stats...</span>
         </div>
 
         <div class="table-responsive" style="max-height: 420px; overflow-y: auto;">
@@ -814,8 +852,154 @@
   <!-- Floating Tooltip -->
   <div class="floating-tooltip" id="canvasTooltip"></div>
 
+  <!-- ====================================================================
+       Mobile Navigation Drawer & Backdrop
+       ==================================================================== -->
+  <div class="mobile-drawer-backdrop" id="mobileDrawerBackdrop" onclick="closeMobileDrawer()"></div>
+  <aside class="mobile-nav-drawer" id="mobileNavDrawer" aria-label="Mobile Navigation">
+    <div class="drawer-header">
+      <div class="drawer-brand">
+        <div class="brand-logo-pill" style="width: 34px; height: 34px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="m9 12 2 2 4-4"/>
+          </svg>
+        </div>
+        <div>
+          <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary); line-height: 1.2;">SYNX Compliance AI</div>
+          <div style="font-size: 0.7rem; color: var(--text-muted);">Legal Metrology Workstation</div>
+        </div>
+      </div>
+      <button type="button" class="btn-drawer-close" onclick="closeMobileDrawer()" aria-label="Close menu">✕</button>
+    </div>
+
+    <div class="drawer-body">
+      <!-- Officer Profile Card inside Drawer (if logged in) -->
+      <div id="drawerOfficerCard" class="drawer-officer-card" style="display: none;">
+        <div class="user-avatar-circle" id="drawerUserAvatar">
+          <span id="drawerUserInitials">IN</span>
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="drawerUserName">Inspector</div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); word-break: break-all;" id="drawerUserEmail">officer@gov.in</div>
+          <span class="badge badge-success" style="font-size: 0.65rem; margin-top: 3px; display: inline-block;" id="drawerUserRole">Inspector</span>
+        </div>
+      </div>
+
+      <div class="drawer-nav-section">
+        <div class="drawer-nav-title">WORKSPACE &amp; TOOLS</div>
+        <button type="button" class="drawer-nav-item" onclick="openHistoryModal(); closeMobileDrawer();">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <ellipse cx="12" cy="5" rx="9" ry="3"/>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+          </svg>
+          <div class="drawer-nav-text">
+            <span>Statutory Audit Ledger</span>
+            <small>Inspect historical records &amp; reports</small>
+          </div>
+        </button>
+
+        <button type="button" class="drawer-nav-item" onclick="openWebcamModal(); closeMobileDrawer();">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+            <circle cx="12" cy="13" r="3"/>
+          </svg>
+          <div class="drawer-nav-text">
+            <span>Live Optical Camera</span>
+            <small>Capture desktop or camera feed</small>
+          </div>
+        </button>
+
+        <button type="button" class="drawer-nav-item" onclick="openRulebookModal(); closeMobileDrawer();">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+            <path d="M6 6h10"/>
+            <path d="M6 10h10"/>
+          </svg>
+          <div class="drawer-nav-text">
+            <span>Metrology Rulebook</span>
+            <small>Inspect PCR 2011 compliance rules</small>
+          </div>
+        </button>
+
+        <button type="button" class="drawer-nav-item" onclick="openRoleModal(); closeMobileDrawer();">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <div class="drawer-nav-text">
+            <span>Officer Role Management</span>
+            <small>Statutory authorization &amp; privileges</small>
+          </div>
+        </button>
+
+        <button type="button" class="drawer-nav-item" onclick="openMobileConnectModal(); closeMobileDrawer();">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
+            <path d="M12 18h.01"/>
+          </svg>
+          <div class="drawer-nav-text">
+            <span>QR Device Pair</span>
+            <small>Connect external smartphone scanner</small>
+          </div>
+        </button>
+      </div>
+
+      <div class="drawer-footer">
+        <button type="button" class="btn btn-secondary drawer-theme-btn" onclick="toggleTheme()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+          </svg>
+          <span>Switch Theme</span>
+        </button>
+        <div id="drawerAuthAction">
+          <button type="button" class="btn btn-primary" style="width: 100%;" onclick="openLoginModal(); closeMobileDrawer();">
+            <span>Sign In</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ====================================================================
+       Fixed Mobile Bottom Navigation Bar
+       ==================================================================== -->
+  <nav class="mobile-bottom-bar" id="mobileBottomBar" aria-label="Mobile Navigation">
+    <button type="button" class="bottom-bar-item active" onclick="navToScanTab()" id="tabScan">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+      </svg>
+      <span>Scan</span>
+    </button>
+    <button type="button" class="bottom-bar-item" onclick="openHistoryModal()" id="tabHistory">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <ellipse cx="12" cy="5" rx="9" ry="3"/>
+        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+      </svg>
+      <span>Ledger</span>
+    </button>
+    <button type="button" class="bottom-bar-item" onclick="openRulebookModal()" id="tabRules">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+        <path d="M6 6h10"/>
+        <path d="M6 10h10"/>
+      </svg>
+      <span>Rulebook</span>
+    </button>
+    <button type="button" class="bottom-bar-item" onclick="handleMobileOfficerTab()" id="tabOfficer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+      <span>Officer</span>
+    </button>
+  </nav>
+
   <!-- Scripts -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="/static/js/app.js?v=5.8.2"></script>
+  <script src="/static/js/app.js?v=6.1.0"></script>
 </body>
 </html>

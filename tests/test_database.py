@@ -5,6 +5,7 @@ import sqlite3
 from pathlib import Path
 from datetime import datetime
 
+from app.config import DATABASE_PATH
 from app.extractor.entities import (
     AuditResult, CalibrationData, PDPCalculation, ExtractedField, BoundingBox, RuleEvaluation
 )
@@ -22,8 +23,16 @@ class TestDatabase(unittest.TestCase):
     def setUp(self):
         init_db()
 
+    def tearDown(self):
+        if hasattr(self, "audit_id"):
+            with sqlite3.connect(str(DATABASE_PATH)) as conn:
+                conn.execute("DELETE FROM audit_evaluations WHERE audit_id = ?;", (self.audit_id,))
+                conn.execute("DELETE FROM inspections WHERE audit_id = ?;", (self.audit_id,))
+                conn.commit()
+
     def test_save_and_retrieve_audit(self):
-        audit_id = f"test_{uuid.uuid4().hex[:8]}"
+        self.audit_id = f"test_{uuid.uuid4().hex[:8]}"
+        audit_id = self.audit_id
         audit = AuditResult(
             audit_id=audit_id,
             timestamp=datetime.now().isoformat(),
@@ -118,6 +127,14 @@ class TestDatabase(unittest.TestCase):
         self.assertIn("total_inspections", analytics)
         self.assertIn("compliance_rate_percent", analytics)
         self.assertGreaterEqual(analytics["total_inspections"], 1)
+
+    def test_check_db_health(self):
+        from app.db.database import check_db_health
+        health = check_db_health()
+        self.assertEqual(health["status"], "connected")
+        self.assertEqual(health["engine"], "SQLite3")
+        self.assertGreaterEqual(health["inspections_count"], 0)
+        self.assertGreaterEqual(health["users_count"], 0)
 
 if __name__ == "__main__":
     unittest.main()
