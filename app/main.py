@@ -1046,7 +1046,7 @@ async def audit_image(
             print(f"[Main] Warning saving CLAHE image: {ce}")
             clahe_url = i_url
 
-        fields = entity_parser.parse(blocks)
+        fields = entity_parser.parse(blocks, image_path=img_p)
 
         label = f"Angle {idx + 1}"
         for k, fld in fields.items():

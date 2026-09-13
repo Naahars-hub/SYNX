@@ -1,6 +1,8 @@
 import re
-from typing import List, Dict, Optional, Any, Tuple
+from pathlib import Path
+from typing import List, Dict, Optional, Any, Tuple, Union
 from app.extractor.entities import OCRTextBlock, ExtractedField, BoundingBox
+from app.extractor.gemini_extractor import extract_commodity_with_gemini, is_gemini_available
 
 class EntityParser:
     """
@@ -80,7 +82,7 @@ class EntityParser:
             "keep away", "dry place", "sunlight"
         }
 
-    def parse(self, blocks: List[OCRTextBlock]) -> Dict[str, ExtractedField]:
+    def parse(self, blocks: List[OCRTextBlock], image_path: Optional[Union[str, Path]] = None) -> Dict[str, ExtractedField]:
         fields: Dict[str, ExtractedField] = {}
         full_text_lines = [b.text for b in blocks]
         combined_text = " \n ".join(full_text_lines)
@@ -120,7 +122,7 @@ class EntityParser:
             fields["country_of_origin"] = origin
 
         # 7. Parse Common / Generic Commodity Name
-        commodity = self._extract_commodity_name(blocks, combined_text)
+        commodity = self._extract_commodity_name(blocks, combined_text, image_path=image_path)
         if commodity:
             fields["commodity_name"] = commodity
 
@@ -546,30 +548,89 @@ class EntityParser:
 
         return None
 
-    def _extract_commodity_name(self, blocks: List[OCRTextBlock], combined_text: str) -> Optional[ExtractedField]:
-        # 1. Explicit keyword "Product: ...", "Commodity: ..."
-        for idx, b in enumerate(blocks):
-            txt = b.text.lower()
-            if any(k in txt for k in ["product:", "commodity:", "item:"]):
-                name = b.text.split(":")[-1].strip()
-                if len(name) > 2:
+    def _extract_commodity_name(
+        self,
+        blocks: List[OCRTextBlock],
+        combined_text: str,
+        image_path: Optional[Union[str, Path]] = None
+    ) -> Optional[ExtractedField]:
+        # 0. Multimodal Gemini Extraction (Highest accuracy for visual packaging & product categorization)
+        if image_path and is_gemini_available():
+            try:
+                gemini_res = extract_commodity_with_gemini(image_path, blocks)
+                if gemini_res and gemini_res.get("commodity_name"):
+                    comm_name = gemini_res["commodity_name"].strip()
+                    brand_name = (gemini_res.get("brand_name") or "").strip()
+                    conf = float(gemini_res.get("confidence", 0.95))
+
+                    # Locate closest matching block to anchor bounding box & physical font size
+                    best_block_idx = 0
+                    best_block = blocks[0] if blocks else None
+                    if blocks:
+                        for idx, b in enumerate(blocks):
+                            b_low = b.text.lower()
+                            if comm_name.lower() in b_low or (brand_name and brand_name.lower() in b_low):
+                                best_block = b
+                                best_block_idx = idx
+                                break
+
+                    bbox = best_block.bbox if best_block else BoundingBox(x=0, y=0, width=100, height=50)
+                    font_px = best_block.height_px if best_block else 30.0
+                    font_mm = best_block.height_mm if best_block else 3.0
+
                     return ExtractedField(
                         field_type="commodity_name",
                         label="Commodity Name",
-                        raw_text=b.text,
-                        parsed_value=name,
-                        confidence=b.confidence,
-                        bbox=b.bbox,
-                        font_height_px=b.height_px,
-                        font_height_mm=b.height_mm,
-                        source_block_index=idx
+                        raw_text=comm_name,
+                        parsed_value=comm_name,
+                        confidence=conf,
+                        bbox=bbox,
+                        font_height_px=font_px,
+                        font_height_mm=font_mm,
+                        source_block_index=best_block_idx
                     )
+            except Exception as ge:
+                print(f"[EntityParser] Gemini extraction fallback triggered: {ge}")
 
-        # 2. Known statutory commodity phrases (prioritized)
+        # 1. Statutory Explicit Declarations: "Generic Name:", "Common Name:", "Name of Commodity:", etc.
+        statutory_prefixes = [
+            "generic name", "common name", "name of commodity", "commodity name",
+            "product name", "item name", "commodity", "product", "item"
+        ]
+        for idx, b in enumerate(blocks):
+            for prefix in statutory_prefixes:
+                pattern = rf"(?:{re.escape(prefix)})\s*[:\-\s]\s*(.*)"
+                m = re.search(pattern, b.text, re.IGNORECASE)
+                if m:
+                    val = m.group(1).strip()
+                    # If declaration value was split across lines / next block
+                    if len(val) < 3 and idx + 1 < len(blocks):
+                        next_txt = blocks[idx + 1].text.strip()
+                        if len(next_txt) >= 3 and not self._is_nutrition_or_storage_line(next_txt):
+                            val = next_txt
+                    if len(val) >= 3:
+                        return ExtractedField(
+                            field_type="commodity_name",
+                            label="Commodity Name",
+                            raw_text=b.text,
+                            parsed_value=val,
+                            confidence=max(b.confidence, 0.92),
+                            bbox=b.bbox,
+                            font_height_px=b.height_px,
+                            font_height_mm=b.height_mm,
+                            source_block_index=idx
+                        )
+
+        # 2. Known Statutory Commodity Phrases (Prioritized across standard FMCG & consumer categories)
         statutory_phrases = [
-            "ready to serve fruit drink", "fruit drink", "mango drink",
-            "potato chips", "namkeen", "roasted snack", "cookies", "biscuits",
-            "fruit juice", "carbonated beverage", "drinking water", "packaged drinking water"
+            "vacuum insulated stainless steel bottle", "stainless steel bottle", "water bottle",
+            "ready to serve fruit drink", "fruit drink", "mango drink", "apple drink", "orange drink",
+            "potato chips", "namkeen", "roasted snack", "cookies", "biscuits", "rusk",
+            "fruit juice", "carbonated beverage", "drinking water", "packaged drinking water",
+            "instant coffee powder", "coffee powder", "tea", "green tea",
+            "refined sunflower oil", "mustard oil", "soyabean oil", "edible vegetable oil",
+            "wheat flour", "atta", "basmati rice", "pulses", "iodised salt", "table salt",
+            "hand wash", "detergent powder", "toilet soap", "bathing bar", "shampoo", "toothpaste"
         ]
         for idx, b in enumerate(blocks):
             t_low = b.text.lower()
@@ -580,41 +641,79 @@ class EntityParser:
                         label="Commodity Name",
                         raw_text=b.text,
                         parsed_value=b.text.strip(),
-                        confidence=b.confidence,
+                        confidence=max(b.confidence, 0.88),
                         bbox=b.bbox,
                         font_height_px=b.height_px,
                         font_height_mm=b.height_mm,
                         source_block_index=idx
                     )
 
-        # 3. Clean title heuristic
+        # 3. Visual-Salience Font-Size Ranker (Zero-API Local Fallback)
+        # Filters marketing buzzwords like "BLEND", "100% PURE", "EXTRA CRISPY"
+        marketing_buzzwords = {
+            "blend", "pure", "fresh", "crispy", "crunchy", "natural", "original",
+            "premium", "classic", "gold", "delight", "select", "choice", "special",
+            "super", "best", "tasty", "rich", "royal", "flavor", "flavour", "assorted",
+            "pack", "new", "improved", "hot", "spicy", "sweet", "crunch"
+        }
         process_phrases = [
             "thermally processed", "pasteurized", "homogenized", "ingredients",
             "contains fruit", "serving size", "servings per", "nutrition",
-            "crush the bottle", "recycle", "warning", "store away"
+            "crush the bottle", "recycle", "warning", "store away", "keep in cool",
+            "for sale in", "net quantity", "retail price", "batch no", "best before"
         ]
-        for idx, b in enumerate(blocks[:8]):
+        metadata_keywords = [
+            "mrp", "rs", "₹", "inr", "net", "mfd", "mfg", "pkd", "batch", "lot",
+            "exp", "fssai", "lic", "pvt", "ltd", "care", "phone", "email", "call",
+            "address", "marketed", "manufactured", "imported", "consumer", "feedback"
+        ]
+
+        candidates = []
+        for idx, b in enumerate(blocks):
             t = b.text.strip()
-            if sum(c.isalpha() for c in t) < 4:
+            letters = [c for c in t if c.isalpha()]
+            if len(letters) < 3:
                 continue
             if self._is_nutrition_or_storage_line(t):
                 continue
             t_low = t.lower()
             if any(p in t_low for p in process_phrases):
                 continue
-            if any(k in t_low for k in ["mrp", "rs", "₹", "net", "mfd", "batch", "exp", "pkd", "fssai", "lic"]):
+            if any(k in t_low for k in metadata_keywords):
                 continue
 
+            # Visual prominence score based on physical font size & confidence
+            font_size = b.height_px if b.height_px > 0 else 12.0
+            score = font_size * 2.0 + b.confidence * 10.0
+
+            words = set(re.findall(r'[a-zA-Z]+', t_low))
+            # Heavy penalty if the entire text block is just marketing buzzwords (e.g. "BLEND")
+            if words and words.issubset(marketing_buzzwords):
+                score *= 0.1
+            elif any(bw in words for bw in marketing_buzzwords):
+                score *= 0.6
+
+            # Reward multi-word coherent descriptions
+            if len(words) >= 2:
+                score *= 1.3
+
+            candidates.append((score, idx, b))
+
+        if candidates:
+            # Sort descending by visual salience score
+            candidates.sort(key=lambda c: c[0], reverse=True)
+            best_score, best_idx, best_b = candidates[0]
+            val = best_b.text.strip()
             return ExtractedField(
                 field_type="commodity_name",
                 label="Commodity Name",
-                raw_text=t,
-                parsed_value=t,
-                confidence=b.confidence,
-                bbox=b.bbox,
-                font_height_px=b.height_px,
-                font_height_mm=b.height_mm,
-                source_block_index=idx
+                raw_text=val,
+                parsed_value=val,
+                confidence=min(best_b.confidence, 0.85),
+                bbox=best_b.bbox,
+                font_height_px=best_b.height_px,
+                font_height_mm=best_b.height_mm,
+                source_block_index=best_idx
             )
 
         return None
