@@ -571,6 +571,36 @@ function renderCanvas(hoveredBox = null) {
   });
 }
 
+// Toggle Loading State for Analyze Button and Canvas Overlay
+function setAuditLoading(isLoading) {
+  const btn = document.getElementById('btnRunAudit');
+  if (loadingOverlay) {
+    loadingOverlay.style.display = isLoading ? 'block' : 'none';
+  }
+  if (!btn) return;
+
+  btn.disabled = isLoading;
+  if (isLoading) {
+    btn.setAttribute('aria-busy', 'true');
+    btn.classList.add('btn-loading');
+    btn.innerHTML = `
+      <svg class="btn-spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+      </svg>
+      <span>Analyzing Compliance...</span>
+    `;
+  } else {
+    btn.removeAttribute('aria-busy');
+    btn.classList.remove('btn-loading');
+    btn.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+      </svg>
+      <span>Analyze Product Compliance</span>
+    `;
+  }
+}
+
 // Run Compliance Audit
 async function runAudit() {
   if (currentFiles.length === 0 && currentSampleNames.length === 0 && currentMobileImages.length === 0) {
@@ -592,8 +622,7 @@ async function runAudit() {
     mobilePollTimer = null;
   }
 
-  loadingOverlay.style.display = 'block';
-  document.getElementById('btnRunAudit').disabled = true;
+  setAuditLoading(true);
 
   const formData = new FormData();
   if (currentFiles.length > 0) {
@@ -637,8 +666,7 @@ async function runAudit() {
     alert(`Audit Error: ${err.message}`);
     console.error(err);
   } finally {
-    loadingOverlay.style.display = 'none';
-    document.getElementById('btnRunAudit').disabled = false;
+    setAuditLoading(false);
   }
 }
 
@@ -679,33 +707,9 @@ function displayAuditResults(audit) {
     }
   }
 
-  // Render Optical Clarity / Glare Warning Banner & CLAHE Telemetry
+  // Glare advisory banner removed per UI preferences
   const clarityBanner = document.getElementById('clarityBanner');
-  if (clarityBanner) {
-    const ocrConf = audit.ocr_confidence !== undefined ? audit.ocr_confidence : (audit.summary && audit.summary.ocr_confidence);
-    const glarePct = audit.total_glare_percentage !== undefined ? audit.total_glare_percentage : (audit.angles && audit.angles[0] ? audit.angles[0].glare_percentage : 0);
-    const recoveredBlocks = audit.blocks_recovered_by_clahe || 0;
-
-    if (glarePct > 3.0 || (ocrConf !== undefined && ocrConf < 0.50)) {
-      let glareMsg = '';
-      if (glarePct > 0) {
-        glareMsg = ` <b>${glarePct.toFixed(1)}% Specular Glare hot-spots detected:</b> OpenCV CLAHE (CIE LAB L-Channel) and Telea inpainting applied to equalize contrast. ${recoveredBlocks > 0 ? `<b>${recoveredBlocks} obscured text block${recoveredBlocks === 1 ? '' : 's'} successfully recovered.</b>` : ''}`;
-      } else {
-        glareMsg = ` <b>Low Optical Clarity (${Math.round(ocrConf * 100)}%) Detected:</b> Reflections or blur may affect OCR confidence.`;
-      }
-      clarityBanner.innerHTML = `
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
-          <line x1="12" y1="9" x2="12" y2="13"/>
-          <line x1="12" y1="17" x2="12.01" y2="17"/>
-        </svg>
-        <span>${glareMsg} Toggle <b>[✨ Anti-Glare (CLAHE)]</b> on the canvas above to view the enhanced image.</span>
-      `;
-      clarityBanner.style.display = 'flex';
-    } else {
-      clarityBanner.style.display = 'none';
-    }
-  }
+  if (clarityBanner) clarityBanner.style.display = 'none';
 
   // Configure CLAHE Toggle Button
   const btnToggleClahe = document.getElementById('btnToggleClahe');
@@ -1478,8 +1482,7 @@ async function runAuditWithUploadedFilenames(filenames) {
     clearInterval(mobilePollTimer);
     mobilePollTimer = null;
   }
-  loadingOverlay.style.display = 'block';
-  document.getElementById('btnRunAudit').disabled = true;
+  setAuditLoading(true);
 
   const formData = new FormData();
   formData.append('sample_filenames', filenames.join(','));
@@ -1512,8 +1515,7 @@ async function runAuditWithUploadedFilenames(filenames) {
     console.error(err);
     alert('Audit error: ' + err.message);
   } finally {
-    loadingOverlay.style.display = 'none';
-    document.getElementById('btnRunAudit').disabled = false;
+    setAuditLoading(false);
   }
 }
 
