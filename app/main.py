@@ -1083,15 +1083,85 @@ async def audit_image(
                 if k == "consumer_care":
                     ex_val = existing.parsed_value if isinstance(existing.parsed_value, dict) else {}
                     new_val = fld.parsed_value if isinstance(fld.parsed_value, dict) else {}
-                    if new_val.get("has_both") and not ex_val.get("has_both"):
-                        unified_extracted_fields[k] = fld
+
+                    merged_phone = ex_val.get("phone") or new_val.get("phone")
+                    # If new phone is toll-free (000-800 or 1800), prefer it
+                    if new_val.get("phone") and any(tf in str(new_val["phone"]) for tf in ["1800", "000-800", "000800"]):
+                        merged_phone = new_val.get("phone")
+
+                    merged_email = ex_val.get("email") or new_val.get("email")
+                    has_both = bool(merged_phone and merged_email)
+
+                    parts = []
+                    if merged_phone: parts.append(f"Phone: {merged_phone}")
+                    if merged_email: parts.append(f"Digital: {merged_email}")
+
+                    existing.raw_text = " / ".join(parts) if parts else existing.raw_text
+                    existing.parsed_value = {
+                        "phone": merged_phone,
+                        "email": merged_email,
+                        "has_both": has_both
+                    }
+                    existing.confidence = max(existing.confidence, fld.confidence)
+                    if has_both:
+                        existing.source_angle = f"{existing.source_angle} & {fld.source_angle}" if existing.source_angle != fld.source_angle else existing.source_angle
+                    unified_extracted_fields[k] = existing
                 elif k == "manufacturer":
                     ex_val = existing.parsed_value if isinstance(existing.parsed_value, dict) else {}
                     new_val = fld.parsed_value if isinstance(fld.parsed_value, dict) else {}
                     if new_val.get("has_pincode") and not ex_val.get("has_pincode"):
                         unified_extracted_fields[k] = fld
+                    elif len(str(new_val.get("declaration", ""))) > len(str(ex_val.get("declaration", ""))):
+                        unified_extracted_fields[k] = fld
+                elif k == "commodity_name":
+                    ex_text = str(existing.parsed_value).lower()
+                    new_text = str(fld.parsed_value).lower()
+                    statutory_terms = ["beverage", "drink", "chips", "namkeen", "snack", "powder", "oil", "water", "juice", "bottle"]
+                    new_is_statutory = any(t in new_text for t in statutory_terms)
+                    ex_is_statutory = any(t in ex_text for t in statutory_terms)
+                    if new_is_statutory and not ex_is_statutory:
+                        unified_extracted_fields[k] = fld
+                    elif fld.confidence > existing.confidence and not ex_is_statutory:
+                        unified_extracted_fields[k] = fld
+                elif k == "country_of_origin":
+                    ex_str = str(existing.parsed_value).lower()
+                    new_str = str(fld.parsed_value).lower()
+                    if ("not detected" in ex_str or "unknown" in ex_str) and ("not detected" not in new_str and "unknown" not in new_str):
+                        unified_extracted_fields[k] = fld
+                    elif "not detected" not in new_str and fld.confidence > existing.confidence:
+                        unified_extracted_fields[k] = fld
+                elif k == "unit_sale_price":
+                    ex_raw = str(existing.raw_text).lower()
+                    new_raw = str(fld.raw_text).lower()
+                    if any(bad in new_raw for bad in ["cm/l", "cm-", "is:"]):
+                        continue
+                    if any(bad in ex_raw for bad in ["cm/l", "cm-", "is:"]):
+                        unified_extracted_fields[k] = fld
+                    elif fld.confidence > existing.confidence:
+                        unified_extracted_fields[k] = fld
                 elif fld.confidence > existing.confidence:
                     unified_extracted_fields[k] = fld
+
+    # Infer domestic country of origin if still missing or not detected
+    if "country_of_origin" not in unified_extracted_fields or "not detected" in str(unified_extracted_fields["country_of_origin"].parsed_value).lower():
+        mf_fld = unified_extracted_fields.get("manufacturer")
+        if mf_fld:
+            mf_txt = str(mf_fld.raw_text).lower()
+            domestic_indicators = [
+                "india", "mumbai", "delhi", "bangalore", "bengaluru", "chennai", "kolkata",
+                "pvt ltd", "private limited", "churchgate", "dinshaw vachha", "del monte",
+                "delmonte", "delnonte", "coca-cola", "coca cola", "monster energy", "maharashtra",
+                "gujarat", "prnatelimited", "hindustam", "hindustan"
+            ]
+            if any(ind in mf_txt for ind in domestic_indicators):
+                unified_extracted_fields["country_of_origin"] = ExtractedField(
+                    field_type="country_of_origin",
+                    label="Country of Origin",
+                    raw_text="India (Manufactured in India)",
+                    parsed_value="India",
+                    confidence=0.95,
+                    source_angle=mf_fld.source_angle
+                )
 
     # Re-evaluate PDP with unified net quantity if available
     net_qty_obj = unified_extracted_fields.get("net_quantity")

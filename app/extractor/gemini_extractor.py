@@ -13,27 +13,42 @@ from app.extractor.entities import OCRTextBlock
 
 GEMINI_API_URL_TEMPLATE = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
 
-SYSTEM_PROMPT = """You are an expert Statutory Legal Metrology (Packaged Commodities) Inspector.
+STATUTORY_SYSTEM_PROMPT = """You are an expert Statutory Legal Metrology (Packaged Commodities) Rules, 2011 Inspector.
 Analyze this packaged commodity label/image and its recognized text.
 
-Your job is to identify:
-1. "commodity_name": The official, common or generic commodity name under Rule 6(1)(b) of the Legal Metrology (Packaged Commodities) Rules, 2011.
-   - Examples of valid generic commodity names: 'Vacuum Insulated Stainless Steel Bottle', 'Potato Chips', 'Packaged Drinking Water', 'Ready to Serve Fruit Drink', 'Instant Coffee Powder', 'Biscuits', 'Refined Sunflower Oil'.
-   - CRITICAL STATUTORY RULES:
-     * Do NOT use marketing slogans (e.g. '100% PURE', 'NATURAL', 'EXTRA TASTY') as the commodity name.
-     * Do NOT use blend or roast descriptors (e.g. 'BLEND', 'DARKROAST') as the commodity name.
-     * Do NOT use the brand name as the commodity name.
-     * If the label has an explicit 'Generic Name:', 'Common Name:', or 'Name of Commodity:', use that exact declared commodity.
-2. "brand_name": The commercial brand or manufacturer brand (e.g. 'Tata', 'Lays', 'Milton', 'Amul', 'Borosil', 'Parle').
-3. "variant": Flavor, variant, or model designation if present (e.g. 'Gold', 'Classic Salted', 'Hydra 1000ml').
-4. "confidence": Confidence score between 0.0 and 1.0 (float).
+Extract any visible mandatory declarations accurately:
+1. "commodity_name": The official, common or generic commodity name under Rule 6(1)(b) of PCR 2011 (e.g. 'Carbonated Caffeinated Beverage', 'Energy Drink', 'Vacuum Insulated Stainless Steel Bottle', 'Potato Chips', 'Packaged Drinking Water', 'Ready to Serve Fruit Drink', 'Instant Coffee Powder', 'Biscuits').
+   - CRITICAL RULES:
+     * Do NOT use marketing slogans (e.g. '100% PURE', 'NATURAL', 'UNLEASH THE BEAST') as commodity name.
+     * Do NOT use blend or roast descriptors (e.g. 'BLEND', 'DARKROAST') as commodity name.
+     * Do NOT use brand name as commodity name.
+     * Do NOT use narrative story text (e.g. 'Our team riders and monster') as commodity name.
+     * If explicit 'Generic Name:', 'Common Name:', or 'Name of Commodity:' is declared, use that exact commodity.
+2. "brand_name": The commercial brand name (e.g. 'Monster Energy', 'Lay\'s', 'Milton', 'Amul').
+3. "variant": Flavor, variant, or model designation (e.g. 'Ultra Zero Sugar', 'Classic Salted').
+4. "mrp": Maximum Retail Price in rupees. Object with {"amount": float, "inclusive_of_all_taxes": bool, "raw": string}.
+5. "unit_sale_price": Unit sale price. Object with {"amount": float, "unit": string, "raw": string}.
+6. "mfg_date": Manufacturing / packaging date string (e.g. '04/NOV/25').
+7. "best_before": Expiry / best before date string (e.g. '03/NOV/27').
+8. "net_quantity": Net quantity. Object with {"amount": float, "unit": string, "raw": string}.
+9. "consumer_care": Consumer grievance contact. Object with {"phone": string or null, "email": string or null, "address": string or null, "raw": string}.
+10. "manufacturer": Name and postal address with pincode of manufacturer / packer / marketer. Object with {"name": string or null, "address": string or null, "raw": string, "has_pincode": bool}.
+11. "country_of_origin": Declared or manufactured country of origin (e.g. 'India').
 
 Respond ONLY with valid JSON conforming to this schema:
 {
-  "brand_name": "string",
-  "commodity_name": "string",
-  "variant": "string",
-  "confidence": 1.0
+  "commodity_name": "string or null",
+  "brand_name": "string or null",
+  "variant": "string or null",
+  "mrp": {"amount": 0.0, "inclusive_of_all_taxes": true, "raw": "string"} or null,
+  "unit_sale_price": {"amount": 0.0, "unit": "string", "raw": "string"} or null,
+  "mfg_date": "string or null",
+  "best_before": "string or null",
+  "net_quantity": {"amount": 0.0, "unit": "string", "raw": "string"} or null,
+  "consumer_care": {"phone": "string or null", "email": "string or null", "address": "string or null", "raw": "string"} or null,
+  "manufacturer": {"name": "string or null", "address": "string or null", "raw": "string", "has_pincode": true} or null,
+  "country_of_origin": "string or null",
+  "confidence": 0.95
 }
 """
 
@@ -69,18 +84,17 @@ def _prepare_image_base64(image_input: Union[str, Path, bytes, Image.Image], max
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
-def extract_commodity_with_gemini(
+def extract_statutory_declarations_with_gemini(
     image_input: Union[str, Path, bytes, Image.Image],
     ocr_blocks: Optional[List[OCRTextBlock]] = None,
-    timeout_seconds: float = 10.0
+    timeout_seconds: float = 20.0
 ) -> Optional[Dict[str, Any]]:
     """
-    Calls Gemini 1.5 Flash to extract the official statutory generic commodity name
-    and brand name from the product image and OCR tokens.
+    Calls Google Gemini multimodal vision to extract all statutory Legal Metrology
+    declarations (commodity name, MRP, USP, dates, net quantity, manufacturer, consumer care, origin)
+    from the packaging photo.
 
-    Returns:
-        Dict with keys: commodity_name, brand_name, variant, confidence, source
-        or None if Gemini is unconfigured, times out, or encounters an error.
+    Returns a dict conforming to the statutory declaration schema, or None on error/timeout.
     """
     if not is_gemini_available():
         return None
@@ -90,11 +104,13 @@ def extract_commodity_with_gemini(
 
         ocr_context = ""
         if ocr_blocks:
-            sample_texts = [b.text.strip() for b in ocr_blocks[:25] if b.text and len(b.text.strip()) > 1]
+            sample_texts = [b.text.strip() for b in ocr_blocks[:30] if b.text and len(b.text.strip()) > 1]
             if sample_texts:
                 ocr_context = "\n\nOCR Recognized Text Snippets:\n" + "\n".join(f"- {xt}" for xt in sample_texts)
 
-        user_prompt = f"Identify the official statutory generic commodity name and brand name for this packaged product.{ocr_context}"
+        user_prompt = (
+            f"Extract all statutory Legal Metrology declarations visible on this packaged product label.{ocr_context}"
+        )
 
         payload = {
             "contents": [
@@ -116,20 +132,20 @@ def extract_commodity_with_gemini(
             "system_instruction": {
                 "parts": [
                     {
-                        "text": SYSTEM_PROMPT
+                        "text": STATUTORY_SYSTEM_PROMPT
                     }
                 ]
             },
             "generationConfig": {
                 "response_mime_type": "application/json",
                 "temperature": 0.1,
-                "max_output_tokens": 2048
+                "max_output_tokens": 3000
             }
         }
 
-        # Prioritized candidate models with automatic failover on 404 (deprecated) or 503 (high demand)
+        # Prioritized candidate models with automatic failover
         candidate_models = []
-        for m in [GEMINI_MODEL, "gemini-3.6-flash", "gemini-flash-latest"]:
+        for m in [GEMINI_MODEL, "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-flash-latest", "gemini-3.6-flash"]:
             if m and m not in candidate_models:
                 candidate_models.append(m)
 
@@ -138,17 +154,21 @@ def extract_commodity_with_gemini(
         with httpx.Client(timeout=timeout_seconds) as client:
             for model_name in candidate_models:
                 url = GEMINI_API_URL_TEMPLATE.format(model=model_name, key=GEMINI_API_KEY)
-                r = client.post(url, json=payload)
-                if r.status_code == 200:
-                    resp = r
-                    used_model = model_name
-                    break
-                elif r.status_code in (404, 503):
-                    print(f"[GeminiExtractor] Model '{model_name}' returned HTTP {r.status_code}. Failing over to next model...")
+                try:
+                    r = client.post(url, json=payload)
+                    if r.status_code == 200:
+                        resp = r
+                        used_model = model_name
+                        break
+                    elif r.status_code in (404, 429, 503):
+                        print(f"[GeminiExtractor] Model '{model_name}' returned HTTP {r.status_code}. Cascading to next model...")
+                        continue
+                    else:
+                        print(f"[GeminiExtractor] API returned HTTP {r.status_code}: {r.text[:200]}")
+                        return None
+                except (httpx.TimeoutException, httpx.RequestError) as net_err:
+                    print(f"[GeminiExtractor] Network error on model '{model_name}': {net_err}. Trying next...")
                     continue
-                else:
-                    print(f"[GeminiExtractor] API returned HTTP {r.status_code}: {r.text[:200]}")
-                    return None
 
         if resp is None or resp.status_code != 200:
             return None
@@ -178,23 +198,8 @@ def extract_commodity_with_gemini(
             raw_json_str = json_match.group(1)
 
         parsed = json.loads(raw_json_str)
-
-        commodity = (parsed.get("commodity_name") or "").strip()
-        brand = (parsed.get("brand_name") or "").strip()
-        variant = (parsed.get("variant") or "").strip()
-        conf = float(parsed.get("confidence", 0.95))
-
-        if not commodity:
-            return None
-
-        print(f"[GeminiExtractor] Extracted Commodity: '{commodity}', Brand: '{brand}' (Confidence: {conf:.2f})")
-        return {
-            "commodity_name": commodity,
-            "brand_name": brand,
-            "variant": variant,
-            "confidence": conf,
-            "source": f"{used_model} multimodal"
-        }
+        parsed["source_model"] = used_model
+        return parsed
 
     except httpx.TimeoutException:
         print("[GeminiExtractor] Request timed out. Falling back to local visual-salience parser.")
@@ -203,3 +208,35 @@ def extract_commodity_with_gemini(
         raw_snippet = repr(raw_json_str) if 'raw_json_str' in locals() else 'N/A'
         print(f"[GeminiExtractor] Warning during extraction: {e}. (raw_text={raw_snippet}). Falling back to local parser.")
         return None
+
+
+def extract_commodity_with_gemini(
+    image_input: Union[str, Path, bytes, Image.Image],
+    ocr_blocks: Optional[List[OCRTextBlock]] = None,
+    timeout_seconds: float = 20.0
+) -> Optional[Dict[str, Any]]:
+    """
+    Calls Gemini to extract the official statutory generic commodity name
+    and brand name from the product image and OCR tokens.
+    """
+    parsed = extract_statutory_declarations_with_gemini(image_input, ocr_blocks, timeout_seconds=timeout_seconds)
+    if not parsed:
+        return None
+
+    commodity = (parsed.get("commodity_name") or "").strip()
+    brand = (parsed.get("brand_name") or "").strip()
+    variant = (parsed.get("variant") or "").strip()
+    conf = float(parsed.get("confidence") or 0.95)
+    used_model = parsed.get("source_model", GEMINI_MODEL)
+
+    if not commodity:
+        return None
+
+    print(f"[GeminiExtractor] Extracted Commodity: '{commodity}', Brand: '{brand}' (Model: {used_model})")
+    return {
+        "commodity_name": commodity,
+        "brand_name": brand,
+        "variant": variant,
+        "confidence": conf,
+        "source": f"{used_model} multimodal"
+    }
