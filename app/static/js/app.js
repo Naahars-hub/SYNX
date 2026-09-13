@@ -571,33 +571,70 @@ function renderCanvas(hoveredBox = null) {
   });
 }
 
-// Toggle Loading State for Analyze Button and Canvas Overlay
+// Toggle Loading State for Analyze Buttons, Mobile Buttons, and Canvas Overlay
 function setAuditLoading(isLoading) {
-  const btn = document.getElementById('btnRunAudit');
+  const btnMain = document.getElementById('btnRunAudit');
+  const btnQuick = document.getElementById('btnRunAuditQuick');
+  const btnForce = document.getElementById('btnForceAuditMobile');
+
   if (loadingOverlay) {
     loadingOverlay.style.display = isLoading ? 'block' : 'none';
   }
-  if (!btn) return;
 
-  btn.disabled = isLoading;
-  if (isLoading) {
-    btn.setAttribute('aria-busy', 'true');
-    btn.classList.add('btn-loading');
-    btn.innerHTML = `
-      <svg class="btn-spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-      </svg>
-      <span>Analyzing Compliance...</span>
-    `;
-  } else {
-    btn.removeAttribute('aria-busy');
-    btn.classList.remove('btn-loading');
-    btn.innerHTML = `
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-      </svg>
-      <span>Analyze Product Compliance</span>
-    `;
+  const buttons = [
+    {
+      el: btnMain,
+      text: 'Analyze Product Compliance',
+      icon: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>'
+    },
+    {
+      el: btnQuick,
+      text: 'Analyze Uploaded Product',
+      icon: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>'
+    }
+  ];
+
+  buttons.forEach(({ el, text, icon }) => {
+    if (!el) return;
+    el.disabled = isLoading;
+    if (isLoading) {
+      el.setAttribute('aria-busy', 'true');
+      el.classList.add('btn-loading');
+      el.innerHTML = `
+        <svg class="btn-spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+        </svg>
+        <span>Analyzing Compliance...</span>
+      `;
+    } else {
+      el.removeAttribute('aria-busy');
+      el.classList.remove('btn-loading');
+      el.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          ${icon}
+        </svg>
+        <span>${text}</span>
+      `;
+    }
+  });
+
+  if (btnForce) {
+    btnForce.disabled = isLoading;
+    if (isLoading) {
+      btnForce.setAttribute('aria-busy', 'true');
+      btnForce.classList.add('btn-loading');
+      btnForce.innerHTML = `
+        <svg class="btn-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+        </svg>
+        <span>Analyzing Compliance...</span>
+      `;
+    } else {
+      btnForce.removeAttribute('aria-busy');
+      btnForce.classList.remove('btn-loading');
+      const count = (currentMobileImages && currentMobileImages.length) ? ` (${currentMobileImages.length})` : '';
+      btnForce.innerHTML = `⚡ Audit Received Photos Now${count}`;
+    }
   }
 }
 
@@ -1378,16 +1415,16 @@ function openMobileViewInTab() {
 
 async function forceAuditMobilePhotos() {
   if (!currentMobileSession) return;
-  const btn = document.getElementById('btnForceAuditMobile');
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = 'Processing...';
+  setAuditLoading(true);
+  const syncEl = document.getElementById('mobileSyncStatus');
+  if (syncEl) {
+    syncEl.innerHTML = '<span class="spinner"></span> Submitting session and analyzing package compliance...';
   }
-  document.getElementById('mobileSyncStatus').innerHTML = '<span class="spinner"></span> Submitting session and analyzing package compliance...';
   try {
     await fetch(`/api/mobile/submit/${currentMobileSession}`, { method: 'POST' });
   } catch (err) {
     console.error('Failed to submit mobile session:', err);
+    setAuditLoading(false);
   }
 }
 

@@ -120,6 +120,11 @@ async def security_headers_and_rate_limit_middleware(request: Request, call_next
 
     response = await call_next(request)
 
+    # Prevent aggressive mobile/proxy asset caching of dynamic UI assets
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+
     # Inject OWASP recommended security headers
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "SAMEORIGIN"

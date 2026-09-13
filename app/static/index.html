@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=6.2.0">
+  <link rel="stylesheet" href="/static/css/style.css?v=6.5.1">
   <script>
     // Force default to clean light theme
     try {
@@ -254,6 +254,14 @@
             </div>
             <div class="upload-preview-grid" id="uploadPreviewGrid">
               <!-- Dynamically populated file cards -->
+            </div>
+            <div class="upload-preview-actions" style="margin-top: 0.85rem;">
+              <button type="button" class="btn btn-primary btn-hero-scan" id="btnRunAuditQuick" onclick="runAudit()" style="margin-top: 0; height: 42px; font-size: 0.88rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+                <span>Analyze Uploaded Product</span>
+              </button>
             </div>
           </div>
 
@@ -997,6 +1005,6 @@
 
   <!-- Scripts -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="/static/js/app.js?v=6.1.0"></script>
+  <script src="/static/js/app.js?v=6.5.1"></script>
 </body>
 </html>

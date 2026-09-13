@@ -401,8 +401,9 @@ body {
   transition: all var(--transition-fast);
 }
 
+.btn.btn-loading,
 .btn-hero-scan.btn-loading {
-  opacity: 0.9;
+  opacity: 0.85;
   cursor: wait !important;
   pointer-events: none;
 }
@@ -421,6 +422,7 @@ body {
   animation: spin 0.8s linear infinite;
   flex-shrink: 0;
   vertical-align: middle;
+  transform-origin: center center;
 }
 
 @media (prefers-reduced-motion: reduce) {
